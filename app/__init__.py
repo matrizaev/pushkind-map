@@ -10,7 +10,7 @@ from config import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
-login = LoginManager ()
+login = LoginManager()
 login.login_view = 'auth.PerformLogin'
 login.login_message = 'Пожалуйста, авторизуйтесь, чтобы увидеть эту страницу.'
 db_collate = 'ru_RU.UTF-8'

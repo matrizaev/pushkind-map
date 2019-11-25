@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import User, Placemark, Tag, TagPlacemark
+from app.models import User, Placemark, Tag
 
 application = create_app()
 

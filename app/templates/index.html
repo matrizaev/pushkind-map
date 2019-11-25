@@ -1,4 +1,95 @@
 {% extends "base.html" %}
 {% block content %}
-<p>Hello, World!</p>
+
+<section class="placemarkForm" id="placemarkForm">
+	<div class="container my-2 border bg-light">
+		<div class="row">
+			<div class="col">
+!TODO Add Placemark Form
+			</div>
+		</div>
+	</div>
+</section>
+<section class="tagsCloud" id="tagsCloud">
+	<div class="container my-2 border bg-light">
+		<div class="row">
+			<div class="col">
+!TODO Add Cloud of tags
+			</div>
+		</div>
+	</div>
+</section>
+<section class="mapWrapper" id="mapWrapper">
+	<div class="container my-2 border bg-light">
+		<div class="row">
+			<div class="col">
+				<div id="map" style="width: 100%; height: 400px"></div>
+			</div>
+		</div>
+	</div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://api-maps.yandex.ru/2.1/?apikey=a72d01fe-d9fe-4c9a-b10f-00df800ff9b5&lang=ru_RU" type="text/javascript"></script>
+<script type="text/javascript">
+	// The ymaps.ready() function will be called when
+	// all the API components are loaded and the DOM tree is generated.
+	var currentVendor;
+	var myMap;
+	ymaps.ready(init);
+	function init(){ 
+		// Creating the map.    
+		myMap = new ymaps.Map("map", {
+			// The map center coordinates.
+			// Default order: “latitude, longitude”.
+			// To not manually determine the map center coordinates,
+			// use the Coordinate detection tool.
+			center: [55.76, 37.64],
+			// Zoom level. Acceptable values:
+			// from 0 (the entire world) to 19.
+			zoom: 7
+		});
+		vendor = new ymaps.Placemark([55.8, 37.6], {balloonContentHeader: 'Поставщик 1',iconContent:'!'}, {preset: 'islands#redIcon'});
+		myMap.geoObjects.add(vendor);
+		currentVendor = vendor;
+		vendor.events.add('click', ChangeActiveObject);
+		console.log()
+		
+		vendor = new ymaps.Placemark([51.7727, 55.0988], {balloonContentHeader: 'Поставщик 2'}, {preset: 'islands#redIcon'});
+		myMap.geoObjects.add(vendor);
+		vendor.events.add('click', ChangeActiveObject);
+		
+		AddVendorObject([44.7477695,37.8854943], 'Грушовая 4, 5');
+		AddVendorObject([55.7428095,37.6121449], 'Музей "ГЭС-2"');
+		AddVendorObject([52.9900771,50.5310134], 'Самара-9, 10');
+		AddVendorObject([59.3997362,28.4799287], 'Кингисепп');
+		
+	}
+	function OnPlacemarkClick(e)
+	{
+		var target = e.get('target');
+		var route = new ymaps.multiRouter.MultiRoute({    
+		referencePoints: [
+			currentVendor.geometry._coordinates,
+			target.geometry._coordinates
+		]
+		}, {boundsAutoApply: true});
+		myMap.geoObjects.add(route);
+	}
+	function AddVendorObject(coordinates, header)
+	{
+		var vendor_object = new ymaps.Placemark(coordinates, {balloonContentHeader: header});
+		myMap.geoObjects.add(vendor_object);
+		vendor_object.events.add('click', OnPlacemarkClick);	
+	}
+	function ChangeActiveObject(e)
+	{
+		currentVendor.properties.set('iconContent','');
+		var target = e.get('target');
+		currentVendor = target;
+		target.properties.set('iconContent','!');
+	}
+</script>
 {% endblock %}
