@@ -54,6 +54,6 @@ class Placemark(db.Model):
 class Tag(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
 	name = db.Column(db.String(128), nullable=False)
-	placemarks = db.relationship('Placemark', secondary = 'tag_placemark')
+	placemarks = db.relationship('Placemark', secondary = 'tag_placemark', lazy = 'dynamic')
 	def __repr__ (self):
 		return '<Tag {}>'.format(self.name)
