@@ -3,22 +3,64 @@
 
 <section class="placemarkForm" id="placemarkForm">
 	<div class="container my-2 border bg-light">
-		<div class="row">
+		<div class = "row my-2">
 			<div class="col">
-!TODO Add Placemark Form
+				{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors %}
+				{% if errorsList|length > 0 %}
+					<div class="alert alert-danger" role="alert">
+						{% for error in  errorsList %}
+							{{ error }}<br>
+						{% endfor %}
+					</div>
+				{% endif %}
 			</div>
 		</div>
+		<form method="POST">
+			{{ form.csrf_token }}
+			
+			<div class="form-row">
+				<div class="form-group col-md-6">
+				  {{ form.longitude.label }}
+				  {{ form.longitude(class_ = 'form-control', autofocus = '') }}
+				</div>
+				<div class="form-group col-md-6">
+				  {{ form.latitude.label }}
+				  {{ form.latitude(class_ = 'form-control', autofocus = '') }}
+				</div>
+			</div>
+			
+			<div class="form-group">
+				{{ form.name.label }}
+				{{ form.name(class_ = 'form-control', autofocus = '') }}
+			</div>
+			<div class="form-group" id="tagsRowCollapse">
+				{{ form.tags.label }}
+				{{ form.tags(class_ = 'form-control') }}
+			</div>
+			<div class="form-group">
+				<div class="form-check">
+					{{ form.is_vendor(class_ = 'form-check-input') }}
+					{{ form.is_vendor.label(class_ = 'form-check-label') }}
+				</div>
+			</div>
+			{{ form.submit(class_ = 'btn btn-primary mb-2') }}
+		</form>
 	</div>
 </section>
-<section class="tagsCloud" id="tagsCloud">
-	<div class="container my-2 border bg-light">
-		<div class="row">
-			<div class="col">
-!TODO Add Cloud of tags
+{% set tagsList = current_user.GetTags() %}
+{% if tagsList|length > 0 %}
+	<section class="tagsCloud" id="tagsCloud">
+		<div class="container my-2 border bg-light">
+			<div class="row">
+				<div class="col">
+				{% for tag in tagsList %}
+					<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}", class="badge badge-info">{{ tag.name }}</a>
+				{% endfor %}
+				</div>
 			</div>
 		</div>
-	</div>
-</section>
+	</section>
+{% endif %}
 <section class="mapWrapper" id="mapWrapper">
 	<div class="container my-2 border bg-light">
 		<div class="row">
@@ -34,9 +76,28 @@
 {% block scripts %}
 <script src="https://api-maps.yandex.ru/2.1/?apikey=a72d01fe-d9fe-4c9a-b10f-00df800ff9b5&lang=ru_RU" type="text/javascript"></script>
 <script type="text/javascript">
+
+
+	var is_vendor = $('#is_vendor'),
+	tagsRowCollapse = $('#tagsRowCollapse');
+
+	tagsRowCollapse.hide();
+	is_vendor.prop('checked', false);
+
+	is_vendor.on('click', function() {
+	   if($(this).is(':checked')) {
+		  tagsRowCollapse.show();
+		  tagsRowCollapse.find('input').attr('required', true);
+	   } else {
+		  tagsRowCollapse.hide();
+		  tagsRowCollapse.find('input').attr('required', false);
+	   }
+	});
+
+
 	// The ymaps.ready() function will be called when
 	// all the API components are loaded and the DOM tree is generated.
-	var currentVendor;
+	var currentVendor = null;
 	var myMap;
 	ymaps.ready(init);
 	function init(){ 
@@ -51,21 +112,24 @@
 			// from 0 (the entire world) to 19.
 			zoom: 7
 		});
-		vendor = new ymaps.Placemark([55.8, 37.6], {balloonContentHeader: 'Поставщик 1',iconContent:'!'}, {preset: 'islands#redIcon'});
-		myMap.geoObjects.add(vendor);
-		currentVendor = vendor;
-		vendor.events.add('click', ChangeActiveObject);
-		console.log()
 		
-		vendor = new ymaps.Placemark([51.7727, 55.0988], {balloonContentHeader: 'Поставщик 2'}, {preset: 'islands#redIcon'});
-		myMap.geoObjects.add(vendor);
-		vendor.events.add('click', ChangeActiveObject);
+		myMap.events.add('click', function(e){
+			var coords = e.get('coords');
+			$('#longitude').val(coords[0]);
+			$('#latitude').val(coords[1]);
+		});
 		
-		AddVendorObject([44.7477695,37.8854943], 'Грушовая 4, 5');
-		AddVendorObject([55.7428095,37.6121449], 'Музей "ГЭС-2"');
-		AddVendorObject([52.9900771,50.5310134], 'Самара-9, 10');
-		AddVendorObject([59.3997362,28.4799287], 'Кингисепп');
+		{% for placemark in current_user.VendorPlacemarks(active_tag) %}
+			AddVendorObject({{ [placemark.longitude,placemark.latitude]  }}, "{{ placemark.name }}");
+		{% endfor %}
 		
+		{% for placemark in current_user.EndpointPlacemarks() %}
+			AddEndpointObject({{ [placemark.longitude,placemark.latitude] }}, "{{ placemark.name }}");
+		{% endfor %}
+		if (currentVendor != null)
+		{
+			myMap.setCenter(currentVendor.geometry._coordinates);
+		}
 	}
 	function OnPlacemarkClick(e)
 	{
@@ -78,11 +142,18 @@
 		}, {boundsAutoApply: true});
 		myMap.geoObjects.add(route);
 	}
+	function AddEndpointObject(coordinates, header)
+	{
+		var endpoint_object = new ymaps.Placemark(coordinates, {balloonContentHeader: header});
+		myMap.geoObjects.add(endpoint_object);
+		endpoint_object.events.add('click', OnPlacemarkClick);	
+	}
 	function AddVendorObject(coordinates, header)
 	{
-		var vendor_object = new ymaps.Placemark(coordinates, {balloonContentHeader: header});
-		myMap.geoObjects.add(vendor_object);
-		vendor_object.events.add('click', OnPlacemarkClick);	
+		var vendor = new ymaps.Placemark(coordinates, {balloonContentHeader: header}, {preset: 'islands#redIcon'});
+		myMap.geoObjects.add(vendor);
+		currentVendor = vendor;
+		vendor.events.add('click', ChangeActiveObject);
 	}
 	function ChangeActiveObject(e)
 	{

@@ -29,9 +29,10 @@ def PerformRegistration():
 		return redirect(url_for('main.ShowIndex'))
 	form = RegistrationForm()
 	if form.validate_on_submit():
-		user = User(email = form.email.data, vendor_id = form.vendor_id.data)
+		user = User(email = form.email.data)
 		user.SetPassword(form.password.data)
-		user.CreateRootCategory()
+		db.session.add(user)
+		db.session.commit()
 		flash ('Теперь вы можете войти.')
 		return redirect(url_for('auth.PerformLogin'))
 	return render_template ('auth/register.html', form = form)
