@@ -102,7 +102,23 @@
 
 	// The ymaps.ready() function will be called when
 	// all the API components are loaded and the DOM tree is generated.
-	var currentVendor = null;
+	var vendorsList = [
+		{% for placemark in current_user.VendorPlacemarks(active_tag) %}
+			{
+				coordinates: {{ [placemark.longitude,placemark.latitude] }},
+				name: "{{ placemark.name }}"
+			},
+		{% endfor %}
+	];
+	var endpointsList = [
+		{% for placemark in current_user.EndpointPlacemarks() %}
+			{
+				coordinates: {{ [placemark.longitude,placemark.latitude] }},
+				name: "{{ placemark.name }}"
+			},
+		{% endfor %}
+	];
+	var routesList = [];
 	var myMap;
 	ymaps.ready(init);
 	function init(){ 
@@ -124,48 +140,48 @@
 			$('#latitude').val(coords[1]);
 		});
 		
-		{% for placemark in current_user.VendorPlacemarks(active_tag) %}
-			AddVendorObject({{ [placemark.longitude,placemark.latitude]  }}, "{{ placemark.name }}");
-		{% endfor %}
+		vendorsList.forEach(AddVendorObject);
+		endpointsList.forEach(AddEndpointObject);
 		
-		{% for placemark in current_user.EndpointPlacemarks() %}
-			AddEndpointObject({{ [placemark.longitude,placemark.latitude] }}, "{{ placemark.name }}");
-		{% endfor %}
-		if (currentVendor != null)
+		if (vendorsList['length'] > 0)
 		{
-			myMap.setCenter(currentVendor.geometry._coordinates);
+			myMap.setCenter(vendorsList[0].coordinates);
 		}
+		
+
 	}
 	function OnPlacemarkClick(e)
 	{
+		routesList.forEach(function(route){
+			route.destroy();
+		});
+		routesList = [];
 		var target = e.get('target');
-		var route = new ymaps.multiRouter.MultiRoute({    
-		referencePoints: [
-			currentVendor.geometry._coordinates,
-			target.geometry._coordinates
-		]
-		}, {boundsAutoApply: true});
-		myMap.geoObjects.add(route);
+		vendorsList.forEach(function(vendor){
+			var route = new ymaps.multiRouter.MultiRoute({    
+			referencePoints: [
+				vendor.coordinates,
+				target.geometry._coordinates
+			]
+			}, {boundsAutoApply: true});
+			myMap.geoObjects.add(route);
+			/*route.events.add('update', function(e){
+				route = e.get('target');
+				route.getActiveRoute().balloon.open();
+			});*/
+			routesList.push(route);
+		});
 	}
-	function AddEndpointObject(coordinates, header)
+	function AddEndpointObject(placemark)
 	{
-		var endpoint_object = new ymaps.Placemark(coordinates, {balloonContentHeader: header});
-		myMap.geoObjects.add(endpoint_object);
-		endpoint_object.events.add('click', OnPlacemarkClick);	
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name});
+		myMap.geoObjects.add(endpoint);
+		endpoint.events.add('click', OnPlacemarkClick);
 	}
-	function AddVendorObject(coordinates, header)
+	function AddVendorObject(placemark)
 	{
-		var vendor = new ymaps.Placemark(coordinates, {balloonContentHeader: header}, {preset: 'islands#redIcon'});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name}, {preset: 'islands#redIcon'});
 		myMap.geoObjects.add(vendor);
-		currentVendor = vendor;
-		vendor.events.add('click', ChangeActiveObject);
-	}
-	function ChangeActiveObject(e)
-	{
-		currentVendor.properties.set('iconContent','');
-		var target = e.get('target');
-		currentVendor = target;
-		target.properties.set('iconContent','!');
 	}
 </script>
 {% endblock %}
