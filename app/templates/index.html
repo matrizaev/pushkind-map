@@ -68,6 +68,12 @@
 {% endif %}
 <section class="mapWrapper" id="mapWrapper">
 	<div class="container my-2 border bg-light">
+		<form>
+			<div class="form-group">
+				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 500км</label>
+				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
+			</div>
+		</form>
 		<div class="row">
 			<div class="col">
 				<div id="map" style="width: 100%; height: 400px"></div>
@@ -161,7 +167,7 @@
 			var route = new ymaps.multiRouter.MultiRoute({    
 			referencePoints: [
 				vendor.coordinates,
-				target.geometry._coordinates
+				target.geometry.getCoordinates()
 			]
 			}, {boundsAutoApply: true});
 			myMap.geoObjects.add(route);
@@ -182,6 +188,23 @@
 	{
 		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name}, {preset: 'islands#redIcon'});
 		myMap.geoObjects.add(vendor);
+	}
+	function FilterRoutesByDistance()
+	{
+		filterDistance = $('#distanceRange').val();
+		$('#distanceLabel').text('Фильтр дистанций: '+ filterDistance + 'км');
+		filterDistance *= 1000;
+		routesList.forEach(function(route){
+			currentDistance = route.getActiveRoute().properties.get("distance").value;
+			if (filterDistance > currentDistance)
+			{
+				route.options.set("visible", true);
+			}
+			else
+			{
+				route.options.set("visible", false);
+			}
+		});
 	}
 </script>
 {% endblock %}
