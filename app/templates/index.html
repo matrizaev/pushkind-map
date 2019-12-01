@@ -112,7 +112,8 @@
 		{% for placemark in current_user.VendorPlacemarks(active_tag) %}
 			{
 				coordinates: {{ [placemark.longitude,placemark.latitude] }},
-				name: "{{ placemark.name }}"
+				name: "{{ placemark.name }}",
+				id: {{ placemark.id }}
 			},
 		{% endfor %}
 	];
@@ -120,7 +121,8 @@
 		{% for placemark in current_user.EndpointPlacemarks() %}
 			{
 				coordinates: {{ [placemark.longitude,placemark.latitude] }},
-				name: "{{ placemark.name }}"
+				name: "{{ placemark.name }}",
+				id: {{ placemark.id }}
 			},
 		{% endfor %}
 	];
@@ -180,13 +182,13 @@
 	}
 	function AddEndpointObject(placemark)
 	{
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name});
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:'<a href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'">удалить</a>'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
 	}
 	function AddVendorObject(placemark)
 	{
-		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name}, {preset: 'islands#redIcon'});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:'<a href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'">удалить</a>'}, {preset: 'islands#redIcon'});
 		myMap.geoObjects.add(vendor);
 	}
 	function FilterRoutesByDistance()

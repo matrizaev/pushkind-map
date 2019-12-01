@@ -30,4 +30,20 @@ def ShowIndex():
 			flash('Ошибка при добавлении метки.')
 		flash('Метка успешно добавлена.')
 	active_tag = request.args.get('active_tag')
-	return render_template('index.html', form = form, active_tag = active_tag)	
+	return render_template('index.html', form = form, active_tag = active_tag)
+
+@bp.route('/remove')
+@login_required
+def RemovePlacemark():
+	id = request.args.get('id')
+	try:
+		p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == id).first()
+		if p:
+			db.session.delete(p)
+			db.session.commit()
+			flash('Метка успешно удалена.')
+		else:
+			flash('Метка не найдена.')
+	except:
+		flash('Ошибка удаления.')
+	return redirect(url_for('main.ShowIndex'))
