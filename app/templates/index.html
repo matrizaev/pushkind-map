@@ -14,7 +14,14 @@
 					</div>
 				</div>
 			</div>
-		{% endif %}	
+		{% endif %}
+		<div class = "row my-2">
+			<div class="col">
+				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+					Добавить метку
+				</button>
+			</div>
+		</div>	
 		<div class="collapse"  id="collapseExample">
 			<form method="POST">
 				{{ form.csrf_token }}
