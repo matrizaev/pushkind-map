@@ -11,23 +11,24 @@ from app.main.forms import AddPlacemarkForm
 def ShowIndex():
 	form = AddPlacemarkForm()
 	if form.validate_on_submit():
-		try:
-			p = Placemark(name = form.name.data, latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
-			db.session.add(p)
-			if form.is_vendor.data:
-				for tag in form.tags.data.split():
-					if tag == ',':
-						continue
-					t = Tag.query.filter(Tag.name == tag).first()
-					if not t:
-						t = Tag(name = tag.replace(',', ''))
-					p.tags.append(t)
-					db.session.add(t)
-			current_user.placemarks.append(p)
-			db.session.add(current_user)
-			db.session.commit()
-		except:
-			flash('Ошибка при добавлении метки.')
+		#try:
+		p = Placemark(name = form.name.data, latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
+		db.session.add(p)
+		if form.is_vendor.data:
+			for tag in form.tags.data.split():
+				tag = tag.replace(',', '').lower()
+				if tag == '':
+					continue
+				t = Tag.query.filter(Tag.name == tag).first()
+				if not t:
+					t = Tag(name = tag)
+				p.tags.append(t)
+				db.session.add(t)
+		current_user.placemarks.append(p)
+		db.session.add(current_user)
+		db.session.commit()
+		#except:
+		#	flash('Ошибка при добавлении метки.')
 		flash('Метка успешно добавлена.')
 	active_tag = request.args.get('active_tag')
 	return render_template('index.html', form = form, active_tag = active_tag)

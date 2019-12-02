@@ -3,25 +3,21 @@
 
 <section class="placemarkForm" id="placemarkForm">
 	<div class="container my-2 border bg-light">
-		<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
-			Добавить метку
-		</button>
-		<div class="collapse"  id="collapseExample">
+		{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors %}
+		{% if errorsList|length > 0 %}
 			<div class = "row my-2">
 				<div class="col">
-					{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors %}
-					{% if errorsList|length > 0 %}
-						<div class="alert alert-danger" role="alert">
-							{% for error in  errorsList %}
-								{{ error }}<br>
-							{% endfor %}
-						</div>
-					{% endif %}
+					<div class="alert alert-danger" role="alert">
+						{% for error in  errorsList %}
+							{{ error }}<br>
+						{% endfor %}
+					</div>
 				</div>
 			</div>
+		{% endif %}	
+		<div class="collapse"  id="collapseExample">
 			<form method="POST">
 				{{ form.csrf_token }}
-				
 				<div class="form-row">
 					<div class="form-group col-md-6">
 					  {{ form.longitude.label }}
@@ -171,7 +167,7 @@
 				vendor.coordinates,
 				target.geometry.getCoordinates()
 			]
-			}, {boundsAutoApply: true});
+			}, {boundsAutoApply: true, wayPointVisible:false});
 			myMap.geoObjects.add(route);
 			/*route.events.add('update', function(e){
 				route = e.get('target');
