@@ -28,17 +28,20 @@
 				<div class="form-row">
 					<div class="form-group col-md-6">
 					  {{ form.longitude.label }}
-					  {{ form.longitude(class_ = 'form-control', autofocus = '') }}
+					  {{ form.longitude(class_ = 'form-control') }}
 					</div>
 					<div class="form-group col-md-6">
 					  {{ form.latitude.label }}
-					  {{ form.latitude(class_ = 'form-control', autofocus = '') }}
+					  {{ form.latitude(class_ = 'form-control') }}
 					</div>
 				</div>
-				
 				<div class="form-group">
 					{{ form.name.label }}
 					{{ form.name(class_ = 'form-control', autofocus = '') }}
+				</div>
+				<div class="form-group">
+					{{ form.description.label }}
+					{{ form.description(class_ = 'form-control') }}
 				</div>
 				<div class="form-group" id="tagsRowCollapse">
 					{{ form.tags.label }}
@@ -125,7 +128,8 @@
 			{
 				coordinates: {{ [placemark.longitude,placemark.latitude] }},
 				name: "{{ placemark.name }}",
-				id: {{ placemark.id }}
+				id: {{ placemark.id }},
+				description: "{{ placemark.description if  placemark.description is not none }}"
 			},
 		{% endfor %}
 	];
@@ -134,7 +138,8 @@
 			{
 				coordinates: {{ [placemark.longitude,placemark.latitude] }},
 				name: "{{ placemark.name }}",
-				id: {{ placemark.id }}
+				id: {{ placemark.id }},
+				description: "{{ placemark.description if  placemark.description is not none }}"
 			},
 		{% endfor %}
 	];
@@ -203,13 +208,15 @@
 	}
 	function AddEndpointObject(placemark)
 	{
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:'<a href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'">удалить</a>'});
+		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
 	}
 	function AddVendorObject(placemark)
 	{
-		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:'<a href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'">удалить</a>'}, {preset: 'islands#redIcon'});
+		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
+		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redIcon'});
 		myMap.geoObjects.add(vendor);
 	}
 	function FilterRoutesByDistance()

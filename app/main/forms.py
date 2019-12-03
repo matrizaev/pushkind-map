@@ -7,6 +7,7 @@ class AddPlacemarkForm(FlaskForm):
 	name = StringField('Название', validators = [DataRequired()])
 	longitude = FloatField('Долгота', validators = [DataRequired()])
 	latitude = FloatField('Широта', validators = [DataRequired()])
+	description = StringField('Описание')
 	tags = StringField('Тэги')
 	is_vendor = BooleanField ('Поставщик')
 	submit = SubmitField('Добавить')

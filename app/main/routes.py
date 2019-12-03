@@ -1,6 +1,6 @@
 from app import db
 from app.models import Placemark, Tag
-from flask import redirect, flash, render_template, request, jsonify, current_app, url_for
+from flask import redirect, flash, render_template, request, jsonify, current_app, url_for, escape
 from flask_login import current_user, login_required
 from app.main import bp
 from app.main.forms import AddPlacemarkForm
@@ -12,7 +12,7 @@ def ShowIndex():
 	form = AddPlacemarkForm()
 	if form.validate_on_submit():
 		#try:
-		p = Placemark(name = form.name.data, latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
+		p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
 		db.session.add(p)
 		if form.is_vendor.data:
 			tagsList = set(form.tags.data.replace(',', ' ').lower().split())

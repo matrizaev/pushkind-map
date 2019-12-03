@@ -51,6 +51,7 @@ class Placemark(db.Model):
 	longitude = db.Column(db.Float, nullable=False)
 	latitude = db.Column(db.Float, nullable=False)
 	name = db.Column(db.String(128), nullable=False)
+	description = db.Column(db.String(128), nullable=True)
 	tags = db.relationship('Tag', secondary = 'tag_placemark')
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')
