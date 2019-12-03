@@ -13,5 +13,5 @@ class AddPlacemarkForm(FlaskForm):
 	
 	def validate_tags(self, tags):
 		if self.is_vendor.data:
-			if not re.fullmatch('\w+((\s*,\s*|\s+)\w+)*', tags.data):
+			if not re.fullmatch('\s*\w+((\s*,\s*|\s+)\w+)*', tags.data):
 				raise ValidationError('Теги - это слова, разделённые пробелами или запятыми.')

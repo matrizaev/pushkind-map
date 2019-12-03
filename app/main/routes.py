@@ -15,10 +15,8 @@ def ShowIndex():
 		p = Placemark(name = form.name.data, latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
 		db.session.add(p)
 		if form.is_vendor.data:
-			for tag in form.tags.data.split():
-				tag = tag.replace(',', '').lower()
-				if tag == '':
-					continue
+			tagsList = set(form.tags.data.replace(',', ' ').lower().split())
+			for tag in tagsList:
 				t = Tag.query.filter(Tag.name == tag).first()
 				if not t:
 					t = Tag(name = tag)

@@ -17,12 +17,12 @@
 		{% endif %}
 		<div class = "row my-2">
 			<div class="col">
-				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+				<button id="collapsedFormControl" class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
 					Добавить метку
 				</button>
 			</div>
 		</div>	
-		<div class="collapse"  id="collapseExample">
+		<div class="collapse"  id="collapsedForm">
 			<form method="POST">
 				{{ form.csrf_token }}
 				<div class="form-row">
@@ -62,7 +62,7 @@
 			<div class="row">
 				<div class="col">
 				{% for tag in tagsList %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}", class="badge badge-info">{{ tag.name }}</a>
+					<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-info tag">{{ tag.name }}</a>
 				{% endfor %}
 				</div>
 			</div>
@@ -97,6 +97,15 @@
 
 	tagsRowCollapse.hide();
 	is_vendor.prop('checked', false);
+
+	$('.tag').on('click', function(event){
+		if (is_vendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded')))
+		{
+			event.preventDefault();
+			tagsValue = $('#tags').val() + ' ' + $(this).text();
+			$('#tags').val(tagsValue);
+		}
+	});
 
 	is_vendor.on('click', function() {
 	   if($(this).is(':checked')) {
