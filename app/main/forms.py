@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import SubmitField, StringField, BooleanField, FloatField
-from wtforms.validators import DataRequired, ValidationError
+from wtforms.validators import DataRequired, ValidationError, Length
 import re
 
 class AddPlacemarkForm(FlaskForm):
-	name = StringField('Название', validators = [DataRequired()])
+	name = StringField('Название', validators = [DataRequired(), Length(max = 128)])
 	longitude = FloatField('Долгота', validators = [DataRequired()])
 	latitude = FloatField('Широта', validators = [DataRequired()])
-	description = StringField('Описание')
+	description = StringField('Описание', validators = [Length(max = 128)])
 	tags = StringField('Тэги')
 	is_vendor = BooleanField ('Поставщик')
 	submit = SubmitField('Добавить')

@@ -17,6 +17,8 @@ def ShowIndex():
 		if form.is_vendor.data:
 			tagsList = set(form.tags.data.replace(',', ' ').lower().split())
 			for tag in tagsList:
+				if len(tag) > 128:
+					tag = tag[:128]
 				t = Tag.query.filter(Tag.name == tag).first()
 				if not t:
 					t = Tag(name = tag)

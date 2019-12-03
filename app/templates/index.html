@@ -72,17 +72,17 @@
 		</div>
 	</section>
 {% endif %}
-<section class="mapWrapper" id="mapWrapper">
-	<div class="container my-2 border bg-light">
+<section class="mapWrapper h-100" id="mapWrapper">
+	<div class="container border bg-light h-100">
 		<form>
 			<div class="form-group">
 				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
 			</div>
 		</form>
-		<div class="row">
-			<div class="col">
-				<div id="map" style="width: 100%; height: 400px"></div>
+		<div class="row h-100">
+			<div class="col h-100">
+				<div id="map" class="h-75 w-100"></div>
 			</div>
 		</div>
 	</div>
@@ -209,14 +209,14 @@
 	function AddEndpointObject(placemark)
 	{
 		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody});
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
 	}
 	function AddVendorObject(placemark)
 	{
 		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
-		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.id, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redIcon'});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
 	}
 	function FilterRoutesByDistance()
