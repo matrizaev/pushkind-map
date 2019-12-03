@@ -73,7 +73,7 @@
 	<div class="container my-2 border bg-light">
 		<form>
 			<div class="form-group">
-				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 500км</label>
+				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
 			</div>
 		</form>
@@ -176,10 +176,19 @@
 			]
 			}, {boundsAutoApply: true, wayPointVisible:false});
 			myMap.geoObjects.add(route);
-			/*route.events.add('update', function(e){
+			route.events.add('update', function(e){
 				route = e.get('target');
-				route.getActiveRoute().balloon.open();
-			});*/
+				filterDistance = $('#distanceRange').val() * 1000;
+				currentDistance = route.getActiveRoute().properties.get("distance").value;
+				if (filterDistance > currentDistance)
+				{
+					route.options.set("visible", true);
+				}
+				else
+				{
+					route.options.set("visible", false);
+				}
+			});
 			routesList.push(route);
 		});
 	}
