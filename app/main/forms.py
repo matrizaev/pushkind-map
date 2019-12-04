@@ -4,10 +4,10 @@ from wtforms.validators import DataRequired, ValidationError, Length
 import re
 
 class AddPlacemarkForm(FlaskForm):
-	name = StringField('Название', validators = [DataRequired(), Length(max = 128)])
-	longitude = FloatField('Долгота', validators = [DataRequired()])
-	latitude = FloatField('Широта', validators = [DataRequired()])
-	description = StringField('Описание', validators = [Length(max = 128)])
+	name = StringField('Название', validators = [DataRequired(message='Название  - обязательное поле.'), Length(max = 128, message='Название не должно быть длиннее 128 символов.')])
+	longitude = FloatField('Долгота', validators = [DataRequired(message='Долгота  - обязательное поле.')])
+	latitude = FloatField('Широта', validators = [DataRequired(message='Широта  - обязательное поле.')])
+	description = StringField('Описание', validators = [Length(max = 128, message='Описание не должно быть длиннее 128 символов.')])
 	tags = StringField('Тэги')
 	is_vendor = BooleanField ('Поставщик')
 	price = FloatField('Цена')
