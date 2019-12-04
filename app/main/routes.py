@@ -12,9 +12,8 @@ def ShowIndex():
 	form = AddPlacemarkForm()
 	if form.validate_on_submit():
 		#try:
-		p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = form.is_vendor.data)
-		db.session.add(p)
 		if form.is_vendor.data:
+			p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = True, price = form.price.data)
 			tagsList = set(form.tags.data.replace(',', ' ').lower().split())
 			for tag in tagsList:
 				if len(tag) > 128:
@@ -24,6 +23,9 @@ def ShowIndex():
 					t = Tag(name = tag)
 				p.tags.append(t)
 				db.session.add(t)
+		else:
+			p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = False)
+		db.session.add(p)
 		current_user.placemarks.append(p)
 		db.session.add(current_user)
 		db.session.commit()

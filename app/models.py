@@ -55,9 +55,15 @@ class Placemark(db.Model):
 	tags = db.relationship('Tag', secondary = 'tag_placemark')
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')
+	price = db.Column(db.Float, nullable=False, default=0.0, server_default='0.0')
 	def __repr__ (self):
-		return '<Placemark {}@"{}, {}" vendor:{}>'.format(self.name, self.longitude, self.latitude, self.is_vendor)
-
+		if self.is_vendor:
+			template = '{{coordinates:[{},{}],name:"{}",id:{},description:"{}",price:{}}}'
+		else:
+			template = '{{coordinates:[{},{}],name:"{}",id:{},description:"{}"}}'
+		return template.format(self.longitude, self.latitude, self.name, self.id, self.description if self.description is not None else '', self.price)
+		
+		
 class Tag(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
 	name = db.Column(db.String(128), nullable=False, unique=True)

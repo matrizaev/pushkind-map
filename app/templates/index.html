@@ -3,7 +3,7 @@
 
 <section class="placemarkForm" id="placemarkForm">
 	<div class="container my-2 border bg-light">
-		{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors %}
+		{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.price.errors + form.description.errors + form.is_vendor.errors %}
 		{% if errorsList|length > 0 %}
 			<div class = "row my-2">
 				<div class="col">
@@ -43,9 +43,15 @@
 					{{ form.description.label }}
 					{{ form.description(class_ = 'form-control') }}
 				</div>
-				<div class="form-group" id="tagsRowCollapse">
-					{{ form.tags.label }}
-					{{ form.tags(class_ = 'form-control') }}
+				<div class="form-row" id="tagsRowCollapse">
+					<div class="form-group col-md-6">
+						{{ form.tags.label }}
+						{{ form.tags(class_ = 'form-control') }}
+					</div>
+					<div class="form-group col-md-6">
+						{{ form.price.label }}
+						{{ form.price(class_ = 'form-control', value = 0.0) }}
+					</div>
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -65,7 +71,11 @@
 			<div class="row">
 				<div class="col">
 				{% for tag in tagsList %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-info tag">{{ tag.name }}</a>
+					{% if tag.name == active_tag %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+					{% else %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-info tag">{{ tag.name }}</a>
+					{% endif %}
 				{% endfor %}
 				</div>
 			</div>
@@ -74,12 +84,15 @@
 {% endif %}
 <section class="mapWrapper h-100" id="mapWrapper">
 	<div class="container border bg-light h-100">
-		<form>
-			<div class="form-group">
+		<div class="row my-2">
+			<div class="input-group col-md-10">
 				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
 			</div>
-		</form>
+			<div class="col-md-2 text-right">
+				<button id="resetMap" class="btn btn-primary">Сброс</button>
+			</div>
+		</div>
 		<div class="row h-100">
 			<div class="col h-100">
 				<div id="map" class="h-75 w-100"></div>
@@ -96,7 +109,8 @@
 
 
 	var is_vendor = $('#is_vendor'),
-	tagsRowCollapse = $('#tagsRowCollapse');
+	tagsRowCollapse = $('#tagsRowCollapse'),
+	resetMapButton = $('#resetMap');
 
 	tagsRowCollapse.hide();
 	is_vendor.prop('checked', false);
@@ -120,42 +134,36 @@
 	   }
 	});
 
-
-	// The ymaps.ready() function will be called when
-	// all the API components are loaded and the DOM tree is generated.
-	var vendorsList = [
-		{% for placemark in current_user.VendorPlacemarks(active_tag) %}
-			{
-				coordinates: {{ [placemark.longitude,placemark.latitude] }},
-				name: "{{ placemark.name }}",
-				id: {{ placemark.id }},
-				description: "{{ placemark.description if  placemark.description is not none }}"
-			},
-		{% endfor %}
-	];
-	var endpointsList = [
-		{% for placemark in current_user.EndpointPlacemarks() %}
-			{
-				coordinates: {{ [placemark.longitude,placemark.latitude] }},
-				name: "{{ placemark.name }}",
-				id: {{ placemark.id }},
-				description: "{{ placemark.description if  placemark.description is not none }}"
-			},
-		{% endfor %}
-	];
+	resetMapButton.on('click', function() {
+		if (routesList['length'] > 0)
+		{
+			endpointsList.forEach(function(endpoint){
+					endpoint.options.set("visible", true);
+			});
+			routesList.forEach(function(route){
+				route.destroy();
+			});
+		}
+	});
+	var vendorsList = [];
+	var endpointsList = [];
 	var routesList = [];
 	var myMap;
 	ymaps.ready(init);
-	function init(){ 
-		// Creating the map.    
+	function init(){
+		var endpointsTemplateList = [
+			{% for placemark in current_user.EndpointPlacemarks() %}
+				{{ placemark|safe }},
+			{% endfor %}
+		];
+		var vendorsTemplateList = [
+			{% for placemark in current_user.VendorPlacemarks(active_tag) %}
+				{{ placemark|safe }},
+			{% endfor %}
+		];
+   
 		myMap = new ymaps.Map("map", {
-			// The map center coordinates.
-			// Default order: “latitude, longitude”.
-			// To not manually determine the map center coordinates,
-			// use the Coordinate detection tool.
 			center: [55.76, 37.64],
-			// Zoom level. Acceptable values:
-			// from 0 (the entire world) to 19.
 			zoom: 7
 		});
 		
@@ -165,59 +173,66 @@
 			$('#latitude').val(coords[1]);
 		});
 		
-		vendorsList.forEach(AddVendorObject);
-		endpointsList.forEach(AddEndpointObject);
+		vendorsTemplateList.forEach(AddVendorObject);
+		endpointsTemplateList.forEach(AddEndpointObject);
 		
 		if (vendorsList['length'] > 0)
 		{
-			myMap.setCenter(vendorsList[0].coordinates);
+			myMap.setCenter(vendorsList[0].geometry.getCoordinates());
 		}
-		
-
 	}
 	function OnPlacemarkClick(e)
 	{
-		routesList.forEach(function(route){
-			route.destroy();
-		});
-		routesList = [];
-		var target = e.get('target');
-		vendorsList.forEach(function(vendor){
-			var route = new ymaps.multiRouter.MultiRoute({    
-			referencePoints: [
-				vendor.coordinates,
-				target.geometry.getCoordinates()
-			]
-			}, {boundsAutoApply: true, wayPointVisible:false});
-			myMap.geoObjects.add(route);
-			route.events.add('update', function(e){
-				route = e.get('target');
-				filterDistance = $('#distanceRange').val() * 1000;
-				currentDistance = route.getActiveRoute().properties.get("distance").value;
-				if (filterDistance > currentDistance)
-				{
-					route.options.set("visible", true);
-				}
-				else
-				{
-					route.options.set("visible", false);
-				}
+		if (vendorsList['length'] > 0)
+		{
+			var target = e.get('target');
+			endpointsList.forEach(function(endpoint){
+				if (endpoint != target) 
+					endpoint.options.set("visible", false);
 			});
-			routesList.push(route);
-		});
+			routesList.forEach(function(route){
+				route.destroy();
+			});
+			routesList = [];
+			vendorsList.forEach(function(vendor){
+				var route = new ymaps.multiRouter.MultiRoute({    
+				referencePoints: [
+					vendor.geometry.getCoordinates(),
+					target.geometry.getCoordinates()
+				]
+				}, {boundsAutoApply: true, wayPointVisible:false});
+				myMap.geoObjects.add(route);
+				route.events.add('update', function(e){
+					route = e.get('target');
+					filterDistance = $('#distanceRange').val() * 1000;
+					currentDistance = route.getActiveRoute().properties.get("distance").value;
+					if (filterDistance > currentDistance)
+					{
+						route.options.set("visible", true);
+					}
+					else
+					{
+						route.options.set("visible", false);
+					}
+				});
+				routesList.push(route);
+			});
+		}
 	}
-	function AddEndpointObject(placemark)
+	function AddEndpointObject(placemark, index)
 	{
 		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
 		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
+		endpointsList.push(endpoint);
 	}
 	function AddVendorObject(placemark)
 	{
-		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
+		var balloonContentBody = '<p>' + placemark.description + '<br> Цена: '+ placemark.price+'</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
+		vendorsList.push(vendor);
 	}
 	function FilterRoutesByDistance()
 	{

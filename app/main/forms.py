@@ -10,6 +10,7 @@ class AddPlacemarkForm(FlaskForm):
 	description = StringField('Описание', validators = [Length(max = 128)])
 	tags = StringField('Тэги')
 	is_vendor = BooleanField ('Поставщик')
+	price = FloatField('Цена')
 	submit = SubmitField('Добавить')
 	
 	def validate_tags(self, tags):
