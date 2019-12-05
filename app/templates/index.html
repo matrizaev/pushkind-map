@@ -137,14 +137,17 @@
 	resetMapButton.on('click', function() {
 		if (routesList['length'] > 0)
 		{
-			endpointsList.forEach(function(endpoint){
-					endpoint.options.set("visible", true);
-			});
 			routesList.forEach(function(route){
 				route.destroy();
 			});
 			routesList = [];
 		}
+		endpointsList.forEach(function(endpoint){
+			endpoint.options.set("visible", true);
+		});
+		vendorsList.forEach(function(vendor){
+			vendor.options.set('preset', 'islands#redStretchyIcon');
+		});
 	});
 	var vendorsList = [];
 	var endpointsList = [];
@@ -195,7 +198,12 @@
 				route.destroy();
 			});
 			routesList = [];
-			vendorsList.forEach(function(vendor){
+			
+			var minIndex = 0;
+			
+			vendorsList.forEach(function(vendor, index){
+				if (vendor.price < vendorsList[minIndex].price)
+					minIndex = index;
 				var route = new ymaps.multiRouter.MultiRoute({    
 				referencePoints: [
 					vendor.geometry.getCoordinates(),
@@ -218,6 +226,7 @@
 				});
 				routesList.push(route);
 			});
+			vendorsList[minIndex].options.set('preset', 'islands#greenStretchyIcon');
 		}
 	}
 	function AddEndpointObject(placemark, index)
@@ -234,6 +243,7 @@
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
 		vendorsList.push(vendor);
+		vendor.price = placemark.price;
 	}
 	function FilterRoutesByDistance()
 	{
