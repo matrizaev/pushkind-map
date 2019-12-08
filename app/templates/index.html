@@ -3,18 +3,6 @@
 
 <section class="placemarkForm" id="placemarkForm">
 	<div class="container my-2 border bg-light">
-		{% set errorsList = form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.price.errors + form.description.errors + form.is_vendor.errors %}
-		{% if errorsList|length > 0 %}
-			<div class = "row my-2">
-				<div class="col">
-					<div class="alert alert-danger" role="alert">
-						{% for error in  errorsList %}
-							{{ error }}<br>
-						{% endfor %}
-					</div>
-				</div>
-			</div>
-		{% endif %}
 		<div class = "row my-2">
 			<div class="col">
 				<button id="collapsedFormControl" class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
@@ -23,43 +11,43 @@
 			</div>
 		</div>	
 		<div class="collapse"  id="collapsedForm">
-			<form method="POST">
-				{{ form.csrf_token }}
+			<form method="POST" action="{{ url_for('main.AddPlacemark') }}">
+				{{ add_form.csrf_token }}
 				<div class="form-row">
 					<div class="form-group col-md-6">
-					  {{ form.longitude.label }}
-					  {{ form.longitude(class_ = 'form-control') }}
+					  {{ add_form.longitude.label }}
+					  {{ add_form.longitude(class_ = 'form-control') }}
 					</div>
 					<div class="form-group col-md-6">
-					  {{ form.latitude.label }}
-					  {{ form.latitude(class_ = 'form-control') }}
+					  {{ add_form.latitude.label }}
+					  {{ add_form.latitude(class_ = 'form-control') }}
 					</div>
 				</div>
 				<div class="form-group">
-					{{ form.name.label }}
-					{{ form.name(class_ = 'form-control', autofocus = '') }}
+					{{ add_form.name.label }}
+					{{ add_form.name(class_ = 'form-control', autofocus = '') }}
 				</div>
 				<div class="form-group">
-					{{ form.description.label }}
-					{{ form.description(class_ = 'form-control') }}
+					{{ add_form.description.label }}
+					{{ add_form.description(class_ = 'form-control') }}
 				</div>
 				<div class="form-row" id="tagsRowCollapse">
 					<div class="form-group col-md-6">
-						{{ form.tags.label }}
-						{{ form.tags(class_ = 'form-control') }}
+						{{ add_form.tags.label }}
+						{{ add_form.tags(class_ = 'form-control') }}
 					</div>
 					<div class="form-group col-md-6">
-						{{ form.price.label }}
-						{{ form.price(class_ = 'form-control', value = 0.0) }}
+						{{ add_form.price.label }}
+						{{ add_form.price(class_ = 'form-control', value = 0.0) }}
 					</div>
 				</div>
 				<div class="form-group">
 					<div class="form-check">
-						{{ form.is_vendor(class_ = 'form-check-input') }}
-						{{ form.is_vendor.label(class_ = 'form-check-label') }}
+						{{ add_form.is_vendor(class_ = 'form-check-input') }}
+						{{ add_form.is_vendor.label(class_ = 'form-check-label') }}
 					</div>
 				</div>
-				{{ form.submit(class_ = 'btn btn-primary mb-2') }}
+				{{ add_form.submit(class_ = 'btn btn-primary mb-2') }}
 			</form>
 		</div>
 	</div>
@@ -101,60 +89,116 @@
 	</div>
 </section>
 
+<div class="modal fade" id="editPlacemarkModal" tabindex="-1" role="dialog" aria-labelledby="editPlacemarkLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="editPlacemarkLabel">Редактирование метки</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<form method="POST" action="{{ url_for('main.EditPlacemark') }}">
+				<div class="modal-body">
+					{{ edit_form.csrf_token }}
+					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
+					<div class="form-group">
+						{{ edit_form.description.label }}
+						{{ edit_form.description(class_ = 'form-control') }}
+					</div>
+					<div class="form-group" id = "editPriceGroup">
+						{{ edit_form.price.label }}
+						{{ edit_form.price(class_ = 'form-control', value = 0.0) }}
+					</div>
+				</div>
+				<div class="modal-footer">
+					{{ edit_form.submit(class_ = 'btn btn-primary') }}
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script src="https://api-maps.yandex.ru/2.1/?apikey=a72d01fe-d9fe-4c9a-b10f-00df800ff9b5&lang=ru_RU" type="text/javascript"></script>
 <script type="text/javascript">
+	//
+	//Globals
+	//
+	var	addIsVendor = $('#addIsVendor'),
+		tagsRowCollapse = $('#tagsRowCollapse'),
+		resetMapButton = $('#resetMap'),
+		vendorsList = [],
+		endpointsList = [],
+		routesList = [],
+		myMap,
+		minimalPrice = 0;
+	
+	//
+	//Events handlers
+	//
+	$(function() {
+		tagsRowCollapse.hide();
+		addIsVendor.prop('checked', false);
 
+		$('.tag').on('click', function(event){
+			if (addIsVendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded')))
+			{
+				event.preventDefault();
+				tagsValue = $('#addTags').val() + ' ' + $(this).text();
+				$('#addTags').val(tagsValue);
+			}
+		});
 
-	var is_vendor = $('#is_vendor'),
-	tagsRowCollapse = $('#tagsRowCollapse'),
-	resetMapButton = $('#resetMap');
+		addIsVendor.on('click', function() {
+		   if($(this).is(':checked')) {
+			  tagsRowCollapse.show();
+			  tagsRowCollapse.find('input').attr('required', true);
+		   } else {
+			  tagsRowCollapse.hide();
+			  tagsRowCollapse.find('input').attr('required', false);
+		   }
+		});
 
-	tagsRowCollapse.hide();
-	is_vendor.prop('checked', false);
-
-	$('.tag').on('click', function(event){
-		if (is_vendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded')))
-		{
-			event.preventDefault();
-			tagsValue = $('#tags').val() + ' ' + $(this).text();
-			$('#tags').val(tagsValue);
-		}
-	});
-
-	is_vendor.on('click', function() {
-	   if($(this).is(':checked')) {
-		  tagsRowCollapse.show();
-		  tagsRowCollapse.find('input').attr('required', true);
-	   } else {
-		  tagsRowCollapse.hide();
-		  tagsRowCollapse.find('input').attr('required', false);
-	   }
-	});
-
-	resetMapButton.on('click', function() {
-		if (routesList['length'] > 0)
-		{
-			routesList.forEach(function(route){
-				route.destroy();
+		resetMapButton.on('click', function() {
+			if (routesList['length'] > 0)
+			{
+				routesList.forEach(function(route){
+					route.destroy();
+				});
+				routesList = [];
+			}
+			endpointsList.forEach(function(endpoint){
+				endpoint.options.set("visible", true);
 			});
-			routesList = [];
-		}
-		endpointsList.forEach(function(endpoint){
-			endpoint.options.set("visible", true);
+			vendorsList.forEach(function(vendor){
+				vendor.options.set('preset', 'islands#redStretchyIcon');
+			});
 		});
-		vendorsList.forEach(function(vendor){
-			vendor.options.set('preset', 'islands#redStretchyIcon');
+		
+		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
+			index = e.relatedTarget.getAttribute('data-placemarkIndex');
+			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
+			{
+				placemark = vendorsList[index];
+				$('#editPriceGroup').show();
+			}
+			else
+			{
+				placemark = endpointsList[index];
+				$('#editPriceGroup').hide();
+			}
+			$('#editId').val(placemark.placemarkId);
+			$('#editPlacemarkLabel').text(placemark.placemarkName);
+			$('#editDescription').val(placemark.placemarkDescription);
 		});
+
 	});
-	var vendorsList = [];
-	var endpointsList = [];
-	var routesList = [];
-	var myMap;
-	ymaps.ready(init);
-	function init(){
+
+	ymaps.ready(function(){
 		var endpointsTemplateList = [
 			{% for placemark in current_user.EndpointPlacemarks() %}
 				{{ placemark|safe }},
@@ -173,8 +217,8 @@
 		
 		myMap.events.add('click', function(e){
 			var coords = e.get('coords');
-			$('#longitude').val(coords[0]);
-			$('#latitude').val(coords[1]);
+			$('#addLongitude').val(coords[0]);
+			$('#addLatitude').val(coords[1]);
 		});
 		
 		vendorsTemplateList.forEach(AddVendorObject);
@@ -184,7 +228,50 @@
 		{
 			myMap.setCenter(vendorsList[0].geometry.getCoordinates());
 		}
+	});
+	
+	//
+	//Utility functions
+	//
+	function AddEndpointObject(placemark, index)
+	{
+		var balloonContentBody =
+			'<pre>' + placemark.description + '</pre>' +
+			'<a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id=' + placemark.id + '" onclick="return confirm(\'Удалить?\')">' +
+				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
+			'</a> '+
+			'<a data-placemarkType="endpoint" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
+				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
+			'</a>';
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
+		myMap.geoObjects.add(endpoint);
+		endpoint.events.add('click', OnPlacemarkClick);
+		endpoint.placemarkDescription = placemark.description;
+		endpoint.placemarkId = placemark.id;
+		endpoint.placemarkName = placemark.name;
+		endpointsList.push(endpoint);
 	}
+	
+	function AddVendorObject(placemark, index)
+	{
+		var balloonContentBody =
+			'<pre>' + placemark.description + '</pre>' +
+			'<p class="font-weight-bold text-right">Цена: '+ placemark.price + '</p>' +
+			'<a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id=' + placemark.id + '" onclick="return confirm(\'Удалить?\')">' +
+				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
+			'</a> '+
+			'<a data-placemarkType="vendor" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
+				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
+			'</a>';
+		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
+		myMap.geoObjects.add(vendor);
+		vendor.placemarkPrice = placemark.price;
+		vendor.placemarkDescription = placemark.description;
+		vendor.placemarkId = placemark.id;
+		vendor.placemarkName = placemark.name;
+		vendorsList.push(vendor);
+	}
+	
 	function OnPlacemarkClick(e)
 	{
 		if (vendorsList['length'] > 0)
@@ -199,68 +286,53 @@
 			});
 			routesList = [];
 			
-			var minIndex = 0;
-			
-			vendorsList.forEach(function(vendor, index){
-				if (vendor.price < vendorsList[minIndex].price)
-					minIndex = index;
+			vendorsList.forEach(function(vendor){
+				if (vendor.placemarkPrice >= minimalPrice)
+					minimalPrice = vendor.placemarkPrice + 1;
 				var route = new ymaps.multiRouter.MultiRoute({    
 				referencePoints: [
 					vendor.geometry.getCoordinates(),
 					target.geometry.getCoordinates()
 				]
 				}, {boundsAutoApply: true, wayPointVisible:false});
+				route.vendor = vendor;
 				myMap.geoObjects.add(route);
-				route.events.add('update', function(e){
-					route = e.get('target');
-					filterDistance = $('#distanceRange').val() * 1000;
-					currentDistance = route.getActiveRoute().properties.get("distance").value;
-					if (filterDistance > currentDistance)
-					{
-						route.options.set("visible", true);
-					}
-					else
-					{
-						route.options.set("visible", false);
-					}
-				});
+				route.events.add('update', FilterRoutesByDistance);
 				routesList.push(route);
 			});
-			vendorsList[minIndex].options.set('preset', 'islands#greenStretchyIcon');
+			
 		}
 	}
-	function AddEndpointObject(placemark, index)
-	{
-		var balloonContentBody = '<p>' + placemark.description + '</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
-		myMap.geoObjects.add(endpoint);
-		endpoint.events.add('click', OnPlacemarkClick);
-		endpointsList.push(endpoint);
-	}
-	function AddVendorObject(placemark)
-	{
-		var balloonContentBody = '<p>' + placemark.description + '<br> Цена: '+ placemark.price+'</p><a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id='+placemark.id+'" onclick="return confirm(\'Удалить?\')">&mdash;</a>';
-		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
-		myMap.geoObjects.add(vendor);
-		vendorsList.push(vendor);
-		vendor.price = placemark.price;
-	}
+	
 	function FilterRoutesByDistance()
 	{
 		filterDistance = $('#distanceRange').val();
 		$('#distanceLabel').text('Фильтр дистанций: '+ filterDistance + 'км');
 		filterDistance *= 1000;
-		routesList.forEach(function(route){
+
+		vendorsList.forEach(function(vendor){
+			if (vendor.placemarkPrice >= minimalPrice)
+				minimalPrice = vendor.placemarkPrice + 1;
+			vendor.options.set('preset', 'islands#redStretchyIcon');
+		});
+		var minIndex = 0;
+		routesList.forEach(function(route, index){
 			currentDistance = route.getActiveRoute().properties.get("distance").value;
 			if (filterDistance > currentDistance)
 			{
 				route.options.set("visible", true);
+				if (route.vendor.placemarkPrice <= minimalPrice)
+				{
+					minimalPrice = route.vendor.placemarkPrice;
+					minIndex = index;
+				}
 			}
 			else
 			{
 				route.options.set("visible", false);
 			}
 		});
+		routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
 	}
 </script>
 {% endblock %}

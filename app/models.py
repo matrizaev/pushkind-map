@@ -58,9 +58,9 @@ class Placemark(db.Model):
 	price = db.Column(db.Float, nullable=False, default=0.0, server_default='0.0')
 	def __repr__ (self):
 		if self.is_vendor:
-			template = '{{coordinates:[{},{}],name:"{}",id:{},description:"{}",price:{}}}'
+			template = '{{coordinates:[{},{}],name:"{}",id:{},description:`{}`,price:{}}}'
 		else:
-			template = '{{coordinates:[{},{}],name:"{}",id:{},description:"{}"}}'
+			template = '{{coordinates:[{},{}],name:"{}",id:{},description:`{}`}}'
 		return template.format(self.longitude, self.latitude, self.name, self.id, self.description if self.description is not None else '', self.price)
 		
 		
