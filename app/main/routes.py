@@ -28,7 +28,8 @@ def RemovePlacemark():
 			flash('Метка не найдена.')
 	except:
 		flash('Ошибка удаления.')
-	return redirect(url_for('main.ShowIndex'))
+	active_tag = request.args.get('active_tag')
+	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
 	
 @bp.route('/add', methods=['POST'])
 @login_required
@@ -59,7 +60,8 @@ def AddPlacemark():
 	else:
 		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.price.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
-	return redirect(url_for('main.ShowIndex'))
+	active_tag = request.args.get('active_tag')
+	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
 	
 @bp.route('/edit', methods=['POST'])
 @login_required
@@ -81,4 +83,5 @@ def EditPlacemark():
 	else:
 		for error in form.id.errors + form.price.errors + form.description.errors:
 			flash(error)
-	return redirect(url_for('main.ShowIndex'))
+	active_tag = request.args.get('active_tag')
+	return redirect(url_for('main.ShowIndex', active_tag=active_tag))

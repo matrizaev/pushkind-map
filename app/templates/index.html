@@ -11,7 +11,7 @@
 			</div>
 		</div>	
 		<div class="collapse"  id="collapsedForm">
-			<form method="POST" action="{{ url_for('main.AddPlacemark') }}">
+			<form method="POST" action="{{ url_for('main.AddPlacemark', active_tag = active_tag) }}">
 				{{ add_form.csrf_token }}
 				<div class="form-row">
 					<div class="form-group col-md-6">
@@ -98,7 +98,7 @@
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
-			<form method="POST" action="{{ url_for('main.EditPlacemark') }}">
+			<form method="POST" action="{{ url_for('main.EditPlacemark', active_tag = active_tag) }}">
 				<div class="modal-body">
 					{{ edit_form.csrf_token }}
 					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
@@ -235,14 +235,15 @@
 	//
 	function AddEndpointObject(placemark, index)
 	{
+		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
 		var balloonContentBody =
 			'<pre>' + placemark.description + '</pre>' +
-			'<a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id=' + placemark.id + '" onclick="return confirm(\'Удалить?\')">' +
+			'<div class="row"><div class="col"><a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
-			'</a> '+
+			'</a></div><div class="col text-right">'+
 			'<a data-placemarkType="endpoint" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a>';
+			'</a></div></div>';
 		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
@@ -254,15 +255,16 @@
 	
 	function AddVendorObject(placemark, index)
 	{
+		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
 		var balloonContentBody =
 			'<pre>' + placemark.description + '</pre>' +
 			'<p class="font-weight-bold text-right">Цена: '+ placemark.price + '</p>' +
-			'<a class="badge badge-danger" href="{{ url_for('main.RemovePlacemark') }}?id=' + placemark.id + '" onclick="return confirm(\'Удалить?\')">' +
+			'<div class="row"><div class="col"><a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
-			'</a> '+
+			'</a></div><div class="col text-right">'+
 			'<a data-placemarkType="vendor" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a>';
+			'</a></div></div>';
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
 		vendor.placemarkPrice = placemark.price;
