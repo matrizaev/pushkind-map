@@ -12,7 +12,7 @@
 		</div>	
 		<div class="collapse"  id="collapsedForm">
 			<form method="POST" action="{{ url_for('main.AddPlacemark', active_tag = active_tag) }}">
-				{{ add_form.csrf_token }}
+				{{ add_form.csrf_token(id='addCSRF') }}
 				<div class="form-row">
 					<div class="form-group col-md-6">
 					  {{ add_form.longitude.label }}
@@ -74,7 +74,7 @@
 	<div class="container border bg-light h-100">
 		<div class="row my-2">
 			<div class="input-group col-md-10">
-				<label for="formControlRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
+				<label for="distanceRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
 			</div>
 			<div class="col-md-2 text-right">
@@ -100,7 +100,7 @@
 			</div>
 			<form method="POST" action="{{ url_for('main.EditPlacemark', active_tag = active_tag) }}">
 				<div class="modal-body">
-					{{ edit_form.csrf_token }}
+					{{ edit_form.csrf_token(id='editCSRF') }}
 					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
 					<div class="form-group">
 						{{ edit_form.description.label }}
@@ -123,8 +123,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://api-maps.yandex.ru/2.1/?apikey=a72d01fe-d9fe-4c9a-b10f-00df800ff9b5&lang=ru_RU" type="text/javascript"></script>
-<script type="text/javascript">
+<script src="https://api-maps.yandex.ru/2.1/?apikey=a72d01fe-d9fe-4c9a-b10f-00df800ff9b5&lang=ru_RU"></script>
+<script>
 	//
 	//Globals
 	//
