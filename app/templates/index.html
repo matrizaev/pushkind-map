@@ -164,13 +164,10 @@
 		});
 
 		resetMapButton.on('click', function() {
-			if (routesList['length'] > 0)
-			{
-				routesList.forEach(function(route){
-					route.destroy();
-				});
-				routesList = [];
-			}
+			routesList.forEach(function(route){
+				route.destroy();
+			});
+			routesList = [];
 			endpointsList.forEach(function(endpoint){
 				endpoint.options.set("visible", true);
 			});
@@ -319,19 +316,23 @@
 		});
 		var minIndex = 0;
 		routesList.forEach(function(route, index){
-			currentDistance = route.getActiveRoute().properties.get("distance").value;
-			if (filterDistance > currentDistance)
+			activeRoute = route.getActiveRoute();
+			if (activeRoute)
 			{
-				route.options.set("visible", true);
-				if (route.vendor.placemarkPrice <= minimalPrice)
+				currentDistance = activeRoute.properties.get("distance").value;
+				if (filterDistance > currentDistance)
 				{
-					minimalPrice = route.vendor.placemarkPrice;
-					minIndex = index;
+					route.options.set("visible", true);
+					if (route.vendor.placemarkPrice <= minimalPrice)
+					{
+						minimalPrice = route.vendor.placemarkPrice;
+						minIndex = index;
+					}
 				}
-			}
-			else
-			{
-				route.options.set("visible", false);
+				else
+				{
+					route.options.set("visible", false);
+				}
 			}
 		});
 		routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
