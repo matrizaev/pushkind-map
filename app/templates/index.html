@@ -238,12 +238,12 @@
 		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
 		var balloonContentBody =
 			'<pre>' + placemark.description + '</pre>' +
-			'<div class="row"><div class="col"><a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
-				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
-			'</a></div><div class="col text-right">'+
+			'<a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
+				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="remove">' +
+			'</a>&nbsp;'+
 			'<a data-placemarkType="endpoint" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a></div></div>';
+			'</a> ';
 		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
@@ -259,12 +259,12 @@
 		var balloonContentBody =
 			'<pre>' + placemark.description + '</pre>' +
 			'<p class="font-weight-bold text-right">Цена: '+ placemark.price + '</p>' +
-			'<div class="row"><div class="col"><a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
+			'<a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
-			'</a></div><div class="col text-right">'+
+			'</a>&nbsp;'+
 			'<a data-placemarkType="vendor" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a></div></div>';
+			'</a>';
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
 		vendor.placemarkPrice = placemark.price;
