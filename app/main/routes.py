@@ -5,13 +5,14 @@ from flask_login import current_user, login_required
 from app.main import bp
 from app.main.forms import AddPlacemarkForm, EditPlacemarkForm
 
+
 @bp.route('/')
 @bp.route('/index/')
 @login_required
 def ShowIndex():
 	add_form = AddPlacemarkForm()
 	edit_form = EditPlacemarkForm()
-	active_tag = request.args.get('active_tag')
+	active_tag = request.args.getlist('active_tag', type=int)
 	return render_template('index.html', add_form = add_form, edit_form = edit_form, active_tag = active_tag)
 
 @bp.route('/remove')
@@ -28,7 +29,7 @@ def RemovePlacemark():
 			flash('Метка не найдена.')
 	except:
 		flash('Ошибка удаления.')
-	active_tag = request.args.get('active_tag')
+	active_tag = request.args.getlist('active_tag', type=int)
 	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
 	
 @bp.route('/add', methods=['POST'])
@@ -60,7 +61,7 @@ def AddPlacemark():
 	else:
 		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.price.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
-	active_tag = request.args.get('active_tag')
+	active_tag = request.args.getlist('active_tag', type=int)
 	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
 	
 @bp.route('/edit', methods=['POST'])
@@ -83,5 +84,5 @@ def EditPlacemark():
 	else:
 		for error in form.id.errors + form.price.errors + form.description.errors:
 			flash(error)
-	active_tag = request.args.get('active_tag')
+	active_tag = request.args.getlist('active_tag', type=int)
 	return redirect(url_for('main.ShowIndex', active_tag=active_tag))

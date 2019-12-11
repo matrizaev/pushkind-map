@@ -31,7 +31,10 @@ class User(UserMixin, db.Model):
 		return self.placemarks.filter(Placemark.is_vendor == False).all()
 		
 	def VendorPlacemarks(self, tag):
-		return self.placemarks.filter(Placemark.tags.any(Tag.name == tag), Placemark.is_vendor == True).all()
+		return self.placemarks.filter(Placemark.tags.any(Tag.id == tag), Placemark.is_vendor == True).all()
+
+	def VendorsPlacemarks(self, tags_list):
+		return self.placemarks.filter(Placemark.tags.any(Tag.id.in_(tags_list)), Placemark.is_vendor == True).all()
 		
 	def GetTags(self):
 		return Tag.query.filter(Tag.placemarks.any(Placemark.user_id == self.id)).all()

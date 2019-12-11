@@ -52,17 +52,19 @@
 		</div>
 	</div>
 </section>
-{% set tagsList = current_user.GetTags() %}
-{% if tagsList|length > 0 %}
+{% set tags_list = current_user.GetTags() %}
+{% if tags_list|length > 0 %}
 	<section class="tagsCloud" id="tagsCloud">
 		<div class="container my-2 border bg-light">
 			<div class="row">
 				<div class="col">
-				{% for tag in tagsList %}
-					{% if tag.name == active_tag %}
-						<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+				{% for tag in tags_list %}
+					{% if tag.id in active_tag %}
+						{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
 					{% else %}
-						<a href="{{ url_for('main.ShowIndex', active_tag = tag.name) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+						{% set add_active_tags = active_tag + [tag.id] %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
 					{% endif %}
 				{% endfor %}
 				</div>
@@ -202,7 +204,7 @@
 			{% endfor %}
 		];
 		var vendorsTemplateList = [
-			{% for placemark in current_user.VendorPlacemarks(active_tag) %}
+			{% for placemark in current_user.VendorsPlacemarks(active_tag) %}
 				{{ placemark|safe }},
 			{% endfor %}
 		];
