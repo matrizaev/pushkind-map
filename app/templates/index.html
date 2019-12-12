@@ -175,6 +175,7 @@
 			});
 			vendorsList.forEach(function(vendor){
 				vendor.options.set('preset', 'islands#redStretchyIcon');
+				vendor.properties.set('iconContent', vendor.placemarkName);
 			});
 		});
 		
@@ -322,6 +323,8 @@
 			if (activeRoute)
 			{
 				currentDistance = activeRoute.properties.get("distance").value;
+				var header = '('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.placemarkPrice+'&#8381;) '+route.vendor.placemarkName;
+				route.vendor.properties.set('iconContent', header);
 				if (filterDistance > currentDistance)
 				{
 					route.options.set("visible", true);
