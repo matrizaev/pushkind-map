@@ -31,15 +31,9 @@
 					{{ add_form.description.label }}
 					{{ add_form.description(class_ = 'form-control') }}
 				</div>
-				<div class="form-row" id="tagsRowCollapse">
-					<div class="form-group col-md-6">
-						{{ add_form.tags.label }}
-						{{ add_form.tags(class_ = 'form-control') }}
-					</div>
-					<div class="form-group col-md-6">
-						{{ add_form.price.label }}
-						{{ add_form.price(class_ = 'form-control', value = 0.0) }}
-					</div>
+				<div class="form-group" id="tagsRowCollapse">
+					{{ add_form.tags.label }}
+					{{ add_form.tags(class_ = 'form-control', placeholder = 'тег[подтег:цена] тег[подтег:цена подтег:цена]') }}
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -74,16 +68,26 @@
 {% endif %}
 <section class="mapWrapper h-100" id="mapWrapper">
 	<div class="container border bg-light h-100">
-		<div class="row my-2">
-			<div class="input-group col-md-10">
-				<label for="distanceRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
-				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
+		{% if active_tag|length > 0 %}
+			<div class="form-group row my-2">
+				<div class="input-group col-md-10">
+					<label for="distanceRange" id="distanceLabel">Фильтр дистанций: 2500км</label>
+					<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
+				</div>
+				<div class="col-md-2 text-right">
+					<button id="resetMap" class="btn btn-primary">Сброс</button>
+				</div>
 			</div>
-			<div class="col-md-2 text-right">
-				<button id="resetMap" class="btn btn-primary">Сброс</button>
+			<div class="form-group">
+				<label for="subTagSelect">Подтег</label>
+				<select class="form-control" id="subTagSelect">
+					{% for subtag in current_user.GetSubtags(active_tag) %}
+						<option value="{{ subtag.name }}">{{ subtag.name }}</option>
+					{% endfor %}
+				</select>
 			</div>
-		</div>
-		<div class="row h-100">
+		{% endif %}
+		<div class="row h-100 my-2">
 			<div class="col h-100">
 				<div id="map" class="h-75 w-100"></div>
 			</div>
@@ -104,13 +108,18 @@
 				<div class="modal-body">
 					{{ edit_form.csrf_token(id='editCSRF') }}
 					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
+					{{ edit_form.is_vendor(class_ = 'd-none', hidden = '') }}
 					<div class="form-group">
 						{{ edit_form.description.label }}
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
-					<div class="form-group" id = "editPriceGroup">
-						{{ edit_form.price.label }}
-						{{ edit_form.price(class_ = 'form-control', value = 0.0) }}
+					<div class="form-group">
+						{{ edit_form.name.label }}
+						{{ edit_form.name(class_ = 'form-control') }}
+					</div>
+					<div class="form-group" id = "editPricesGroup">
+					{{ edit_form.prices.label }}
+					{{ edit_form.prices(class_ = 'form-control', placeholder = 'тег-подтег:цена тег-подтег:цена') }}
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -132,12 +141,10 @@
 	//
 	var	addIsVendor = $('#addIsVendor'),
 		tagsRowCollapse = $('#tagsRowCollapse'),
-		resetMapButton = $('#resetMap'),
 		vendorsList = [],
 		endpointsList = [],
 		routesList = [],
-		myMap,
-		minimalPrice = 0;
+		myMap;
 	
 	//
 	//Events handlers
@@ -165,38 +172,49 @@
 		   }
 		});
 
-		resetMapButton.on('click', function() {
-			routesList.forEach(function(route){
-				route.destroy();
-			});
-			routesList = [];
-			endpointsList.forEach(function(endpoint){
-				endpoint.options.set("visible", true);
-			});
-			vendorsList.forEach(function(vendor){
-				vendor.options.set('preset', 'islands#redStretchyIcon');
-				vendor.properties.set('iconContent', vendor.placemarkName);
-			});
-		});
+		$('#resetMap').on('click', ResetMap);
+		$('#subTagSelect').on('change', ResetMap);
 		
 		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
 			index = e.relatedTarget.getAttribute('data-placemarkIndex');
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
 				placemark = vendorsList[index];
-				$('#editPriceGroup').show();
+				$('#editPricesGroup').show();
+				st = '';
+				for (var key in placemark.template['prices'])
+				{
+					st += key + ':'+ placemark.template['prices'][key] + ' '
+				}
+				$('#editPrices').val(st);
+				$("#editIsVendor").prop('checked', true);
 			}
 			else
 			{
 				placemark = endpointsList[index];
-				$('#editPriceGroup').hide();
+				$('#editPricesGroup').hide();
+				$("#editIsVendor").prop('checked', false);
 			}
-			$('#editId').val(placemark.placemarkId);
-			$('#editPlacemarkLabel').text(placemark.placemarkName);
-			$('#editDescription').val(placemark.placemarkDescription);
+			$('#editId').val(placemark.template.id);
+			$('#editName').val(placemark.template.name);
+			$('#editDescription').val(placemark.template.description);
 		});
 
 	});
+
+	function ResetMap(){
+		routesList.forEach(function(route){
+			route.destroy();
+		});
+		routesList = [];
+		endpointsList.forEach(function(endpoint){
+			endpoint.options.set("visible", true);
+		});
+		vendorsList.forEach(function(vendor){
+			vendor.options.set('preset', 'islands#redStretchyIcon');
+			vendor.properties.set('iconContent', vendor.template['name']);
+		});
+	}
 
 	ymaps.ready(function(){
 		var endpointsTemplateList = [
@@ -247,9 +265,7 @@
 		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
-		endpoint.placemarkDescription = placemark.description;
-		endpoint.placemarkId = placemark.id;
-		endpoint.placemarkName = placemark.name;
+		endpoint.template = placemark;
 		endpointsList.push(endpoint);
 	}
 	
@@ -258,7 +274,15 @@
 		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
 		var balloonContentBody =
 			'<pre>' + placemark.description + '</pre>' +
-			'<p class="font-weight-bold text-right">Цена: '+ placemark.price + '</p>' +
+			'<p class="font-weight-bold">Цены:<br>';
+
+		for (var key in placemark['prices'])
+		{
+			balloonContentBody += key + ': '+ placemark['prices'][key] + '<br>'
+		}
+			
+		balloonContentBody +=
+			'</p>' +
 			'<a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
 				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
 			'</a>&nbsp;'+
@@ -267,10 +291,7 @@
 			'</a>';
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
-		vendor.placemarkPrice = placemark.price;
-		vendor.placemarkDescription = placemark.description;
-		vendor.placemarkId = placemark.id;
-		vendor.placemarkName = placemark.name;
+		vendor.template = placemark;
 		vendorsList.push(vendor);
 	}
 	
@@ -288,19 +309,21 @@
 			});
 			routesList = [];
 			
+			var currentSubtag = $('#subTagSelect').val();
 			vendorsList.forEach(function(vendor){
-				if (vendor.placemarkPrice >= minimalPrice)
-					minimalPrice = vendor.placemarkPrice + 1;
-				var route = new ymaps.multiRouter.MultiRoute({    
-				referencePoints: [
-					vendor.geometry.getCoordinates(),
-					target.geometry.getCoordinates()
-				]
-				}, {boundsAutoApply: true, wayPointVisible:false});
-				route.vendor = vendor;
-				myMap.geoObjects.add(route);
-				route.events.add('update', FilterRoutesByDistance);
-				routesList.push(route);
+				if (currentSubtag in vendor.template['prices'])
+				{
+					var route = new ymaps.multiRouter.MultiRoute({
+					referencePoints: [
+						vendor.geometry.getCoordinates(),
+						target.geometry.getCoordinates()
+					]
+					}, {boundsAutoApply: true, wayPointVisible:false});
+					route.vendor = vendor;
+					myMap.geoObjects.add(route);
+					route.events.add('update', FilterRoutesByDistance);
+					routesList.push(route);
+				}
 			});
 			
 		}
@@ -311,26 +334,25 @@
 		filterDistance = $('#distanceRange').val();
 		$('#distanceLabel').text('Фильтр дистанций: '+ filterDistance + 'км');
 		filterDistance *= 1000;
-
 		vendorsList.forEach(function(vendor){
-			if (vendor.placemarkPrice >= minimalPrice)
-				minimalPrice = vendor.placemarkPrice + 1;
 			vendor.options.set('preset', 'islands#redStretchyIcon');
 		});
+		var currentSubtag = $('#subTagSelect').val();
 		var minIndex = 0;
+		var minimalPrice = vendorsList[minIndex].template['prices'][currentSubtag];
 		routesList.forEach(function(route, index){
 			activeRoute = route.getActiveRoute();
 			if (activeRoute)
 			{
 				currentDistance = activeRoute.properties.get("distance").value;
-				var header = '<b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.placemarkPrice+'Р)</b> '+route.vendor.placemarkName;
+				var header = '<b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р)</b> '+route.vendor.template['name'];
 				route.vendor.properties.set('iconContent', header);
 				if (filterDistance > currentDistance)
 				{
 					route.options.set("visible", true);
-					if (route.vendor.placemarkPrice <= minimalPrice)
+					if (route.vendor.template['prices'][currentSubtag] <= minimalPrice)
 					{
-						minimalPrice = route.vendor.placemarkPrice;
+						minimalPrice = route.vendor.template['prices'][currentSubtag];
 						minIndex = index;
 					}
 				}

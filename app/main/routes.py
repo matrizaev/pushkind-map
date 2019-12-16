@@ -1,9 +1,10 @@
 from app import db
-from app.models import Placemark, Tag
+from app.models import Placemark, Tag, Subtag, SubtagPlacemark
 from flask import redirect, flash, render_template, request, jsonify, current_app, url_for, escape
 from flask_login import current_user, login_required
 from app.main import bp
 from app.main.forms import AddPlacemarkForm, EditPlacemarkForm
+import re
 
 
 @bp.route('/')
@@ -23,6 +24,8 @@ def RemovePlacemark():
 		p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == id).first()
 		if p:
 			db.session.delete(p)
+			Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session=False)
+			Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session=False)
 			db.session.commit()
 			flash('Метка успешно удалена.')
 		else:
@@ -39,27 +42,38 @@ def AddPlacemark():
 	if form.validate_on_submit():
 		try:
 			if form.is_vendor.data:
-				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = True, price = form.price.data)
-				tagsList = set(form.tags.data.replace(',', ' ').lower().split())
-				for tag in tagsList:
-					if len(tag) > 128:
-						tag = tag[:128]
-					t = Tag.query.filter(Tag.name == tag).first()
+				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = True)
+				pattern = re.compile('(\w+)\[[^\]]+\]')
+				tags_list = [x for x in pattern.finditer(form.tags.data)]
+				pattern = re.compile('(\w+):(\d+(?:\.\d+)?)')
+				for tag in tags_list:
+					tag_name = tag.group(1).lower()
+					t = Tag.query.filter(Tag.name == tag_name).first()
 					if not t:
-						t = Tag(name = tag)
-					p.tags.append(t)
-					db.session.add(t)
+						t = Tag(name = tag_name)
+						db.session.add(t)
+					subtags_list = [x for x in pattern.finditer(tag.group(0))]
+					for subtag in subtags_list:
+						st_name = '{}-{}'.format(tag_name, subtag.group(1).lower())
+						st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == t).first()
+						if not st:
+							st = Subtag(name = st_name)
+							db.session.add(st)
+						t.subtags.append(st)
+						subtag_placemark = SubtagPlacemark(price = float(subtag.group(2)))
+						subtag_placemark.placemark = p
+						subtag_placemark.subtag = st
+						db.session.add(subtag_placemark)
 			else:
 				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = False)
 			db.session.add(p)
 			current_user.placemarks.append(p)
-			db.session.add(current_user)
 			db.session.commit()
 		except:
 			flash('Ошибка при добавлении метки.')
 		flash('Метка успешно добавлена.')
 	else:
-		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.price.errors + form.description.errors + form.is_vendor.errors:
+		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
 	active_tag = request.args.getlist('active_tag', type=int)
 	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
@@ -73,8 +87,14 @@ def EditPlacemark():
 			p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data).first()
 			if p:
 				p.description = escape(form.description.data)
+				p.name = escape(form.name.data)
 				if p.is_vendor:
-					p.price = form.price.data
+					pattern = re.compile('(\w+-\w+):(\d+(?:\.\d+)?)')
+					subtags_list = [x for x in pattern.finditer(form.prices.data)]
+					for subtag in subtags_list:
+						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag.group(1).lower())).first()
+						if st:
+							st.price = float(subtag.group(2))
 				db.session.commit()
 				flash('Метка успешно изменена.')
 			else:

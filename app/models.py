@@ -7,6 +7,7 @@ from hashlib import md5
 from sqlalchemy import or_
 from flask import current_app
 from flask import url_for
+import json
 
 @login.user_loader
 def load_user(id):
@@ -14,7 +15,7 @@ def load_user(id):
 	
 class User(UserMixin, db.Model):
 	id  = db.Column(db.Integer, primary_key = True)
-	email    = db.Column(db.String(120), index = True, unique = True, nullable=False)
+	email	= db.Column(db.String(120), index = True, unique = True, nullable=False)
 	password = db.Column(db.String(128), nullable=False)
 	placemarks = db.relationship('Placemark', backref = 'user', lazy='dynamic')
 	
@@ -30,24 +31,19 @@ class User(UserMixin, db.Model):
 	def EndpointPlacemarks(self):
 		return self.placemarks.filter(Placemark.is_vendor == False).all()
 		
-	def VendorPlacemarks(self, tag):
-		return self.placemarks.filter(Placemark.tags.any(Tag.id == tag), Placemark.is_vendor == True).all()
-
 	def VendorsPlacemarks(self, tags_list):
-		return self.placemarks.filter(Placemark.tags.any(Tag.id.in_(tags_list)), Placemark.is_vendor == True).all()
+		return self.placemarks.filter(Placemark.subtags.any(Subtag.tag_id.in_(tags_list)), Placemark.is_vendor == True).all()
 		
 	def GetTags(self):
-		return Tag.query.filter(Tag.placemarks.any(Placemark.user_id == self.id)).all()
+		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
+		
+	def GetSubtags(self, tags_list):
+		return Subtag.query.filter(Subtag.tag_id.in_(tags_list)).all()
 		
 	def GetAvatar(self, size):
 		digest = md5(self.email.lower().encode('utf-8')).hexdigest()
 		return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
 
-
-tag_placemark = db.Table('tag_placemark', db.Model.metadata,
-    db.Column('placemark_id', db.Integer, db.ForeignKey('placemark.id')),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
-)
 
 class Placemark(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
@@ -55,21 +51,51 @@ class Placemark(db.Model):
 	latitude = db.Column(db.Float, nullable=False)
 	name = db.Column(db.String(128), nullable=False)
 	description = db.Column(db.String(128), nullable=True)
-	tags = db.relationship('Tag', secondary = 'tag_placemark')
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')
-	price = db.Column(db.Float, nullable=False, default=0.0, server_default='0.0')
-	def __repr__ (self):
+	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')	
+	subtags = db.relationship('SubtagPlacemark', back_populates='placemark', cascade='save-update,merge,delete,delete-orphan')
+	
+	def Serialize(self):
+		result = {
+			'id':self.id,
+			'coordinates':[self.longitude, self.latitude],
+			'name':self.name,
+			'description':self.description,
+		}
 		if self.is_vendor:
-			template = '{{coordinates:[{},{}],name:"{}",id:{},description:`{}`,price:{}}}'
-		else:
-			template = '{{coordinates:[{},{}],name:"{}",id:{},description:`{}`}}'
-		return template.format(self.longitude, self.latitude, self.name, self.id, self.description if self.description is not None else '', self.price)
-		
+			result['prices'] = {st.subtag.name:st.price for st in self.subtags}
+		return result
+	
+	def __repr__ (self):
+		return json.dumps(self.Serialize())
+
+class SubtagPlacemark(db.Model):
+	placemark_id = db.Column(db.Integer, db.ForeignKey('placemark.id'), primary_key = True)
+	subtag_id = db.Column(db.Integer, db.ForeignKey('subtag.id'), primary_key = True)
+	price = db.Column(db.Float, nullable=False, default=0.0, server_default='0.0')
+	placemark = db.relationship('Placemark', back_populates='subtags')
+	subtag = db.relationship('Subtag', back_populates='placemarks')
+	
+	def __repr__ (self):
+		return '{}[{}:{}]'.format(self.subtag.tag.name, self.subtag.name.split('-')[1], self.price)
+
+class Subtag(db.Model):
+	id = db.Column(db.Integer, primary_key = True)
+	name = db.Column(db.String(128), nullable=False, unique=True)
+	tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
+	tag = db.relationship('Tag', back_populates='subtags')
+	placemarks = db.relationship('SubtagPlacemark', back_populates='subtag')
+	
+	def __repr__ (self):
+		return '<Subtag {}>'.format(self.name)
 		
 class Tag(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
 	name = db.Column(db.String(128), nullable=False, unique=True)
-	placemarks = db.relationship('Placemark', secondary = 'tag_placemark', lazy = 'dynamic')
+	subtags = db.relationship('Subtag', back_populates='tag')
+	
+	def GetPlacemarks(self, user_id):
+		return Placemark.query.filter(Placemark.subtags.any(Subtag.tag_id == self.id), placemark.user_id == user_id).all()
+
 	def __repr__ (self):
-		return '<Tag {}>'.format(self.name)
+		return '<Tag {} ({})>'.format(self.name, ','.join([str(x) for x in self.subtags]))
