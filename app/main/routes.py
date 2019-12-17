@@ -92,7 +92,8 @@ def EditPlacemark():
 					pattern = re.compile('(\w+-\w+):(\d+(?:\.\d+)?)')
 					subtags_list = [x for x in pattern.finditer(form.prices.data)]
 					for subtag in subtags_list:
-						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag.group(1).lower())).first()
+						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag.group(1).lower()), SubtagPlacemark.placemark_id == p.id).first()
+						print(st)
 						if st:
 							st.price = float(subtag.group(2))
 				db.session.commit()
