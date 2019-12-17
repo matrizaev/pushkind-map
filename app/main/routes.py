@@ -103,7 +103,7 @@ def EditPlacemark():
 		except:
 			flash('Ошибка изменения метки.')
 	else:
-		for error in form.id.errors + form.price.errors + form.description.errors:
+		for error in form.id.errors + form.prices.errors + form.description.errors + form.name.errors:
 			flash(error)
 	active_tag = request.args.getlist('active_tag', type=int)
 	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
