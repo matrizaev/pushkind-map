@@ -32,7 +32,7 @@ class User(UserMixin, db.Model):
 		return self.placemarks.filter(Placemark.is_vendor == False).all()
 		
 	def VendorsPlacemarks(self, tags_list):
-		return self.placemarks.filter(Placemark.subtags.any(Subtag.tag_id.in_(tags_list)), Placemark.is_vendor == True).all()
+		return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.tag_id.in_(tags_list))), Placemark.is_vendor == True).all()
 		
 	def GetTags(self):
 		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
@@ -94,8 +94,5 @@ class Tag(db.Model):
 	name = db.Column(db.String(128), nullable=False, unique=True)
 	subtags = db.relationship('Subtag', back_populates='tag')
 	
-	def GetPlacemarks(self, user_id):
-		return Placemark.query.filter(Placemark.subtags.any(Subtag.tag_id == self.id), placemark.user_id == user_id).all()
-
 	def __repr__ (self):
 		return '<Tag {} ({})>'.format(self.name, ','.join([str(x) for x in self.subtags]))

@@ -33,7 +33,7 @@
 				</div>
 				<div class="form-group" id="tagsRowCollapse">
 					{{ add_form.tags.label }}
-					{{ add_form.tags(class_ = 'form-control', placeholder = 'тег[подтег:цена] тег[подтег:цена подтег:цена]') }}
+					{{ add_form.tags(class_ = 'form-control') }}
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -119,7 +119,7 @@
 					</div>
 					<div class="form-group" id = "editPricesGroup">
 					{{ edit_form.prices.label }}
-					{{ edit_form.prices(class_ = 'form-control', placeholder = 'тег-подтег:цена тег-подтег:цена') }}
+					{{ edit_form.prices(class_ = 'form-control') }}
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -345,15 +345,23 @@
 			if (activeRoute)
 			{
 				currentDistance = activeRoute.properties.get("distance").value;
-				var header = '<b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р)</b> '+route.vendor.template['name'];
+				route.activeDistance = currentDistance;
+				var header = route.vendor.template['name']+'<b>['+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р]</b>';
 				route.vendor.properties.set('iconContent', header);
 				if (filterDistance > currentDistance)
 				{
 					route.options.set("visible", true);
-					if (route.vendor.template['prices'][currentSubtag] <= minimalPrice)
+					if (route.vendor.template['prices'][currentSubtag] < minimalPrice)
 					{
 						minimalPrice = route.vendor.template['prices'][currentSubtag];
 						minIndex = index;
+					}
+					else if (route.vendor.template['prices'][currentSubtag] == minimalPrice)
+					{
+						if (currentDistance < routesList[minIndex].activeDistance)
+						{
+							minIndex = index;
+						}
 					}
 				}
 				else

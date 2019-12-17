@@ -43,9 +43,9 @@ def AddPlacemark():
 		try:
 			if form.is_vendor.data:
 				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = True)
-				pattern = re.compile('(\w+)\[[^\]]+\]')
+				pattern = re.compile('(\w+)(?:\s*-\w+:\d+(?:\.\d+)?)+')
 				tags_list = [x for x in pattern.finditer(form.tags.data)]
-				pattern = re.compile('(\w+):(\d+(?:\.\d+)?)')
+				pattern = re.compile('-(\w+):(\d+(?:\.\d+)?)')
 				for tag in tags_list:
 					tag_name = tag.group(1).lower()
 					t = Tag.query.filter(Tag.name == tag_name).first()
