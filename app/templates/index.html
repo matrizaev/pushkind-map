@@ -35,7 +35,7 @@
 				<div class="form-group" id="tagsRowCollapse">
 					{{ add_form.tags.label }}
 					{{ add_form.tags(class_ = 'form-control') }}
-					<div id="subTagsList">
+					<div id="subtagsCloud">
 					</div>
 				</div>
 				<div class="form-group">
@@ -115,13 +115,15 @@
 						{{ edit_form.description.label }}
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
-					<div class="form-group">hierarchy
+					<div class="form-group">
 						{{ edit_form.name.label }}
 						{{ edit_form.name(class_ = 'form-control') }}
 					</div>
-					<div class="form-group" id = "editPricesGroup">
-					{{ edit_form.prices.label }}
-					{{ edit_form.prices(class_ = 'form-control') }}
+					<div id = "editPricesGroup">
+					{% for subform in edit_form.prices %}
+						{{ edit_form.prices.label }}
+						{{ edit_form.prices(class_ = 'form-control') }}
+					{% endfor %}	
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -166,23 +168,22 @@
 		addIsVendor.prop('checked', false);
 
 		$('.tag').on('click', function(event){
-			if (addIsVendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded')))
-			{
+			if (addIsVendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded'))){
 				event.preventDefault();
 				tagsValue = $('#addTags').val() + ' ' + $(this).text();
 				$('#addTags').val(tagsValue);
 				$('#addTags').focus();
 				tagId = $(this).attr('data-tagId');
 				subtags = tagsHierarchy[tagId];
-				$('#subTagsList').empty();
+				$('#subtagsCloud').empty();
 				for (subtag in subtags){
 					subtagName = tagsHierarchy[tagId][subtag].split('-');
-					$('#subTagsList').append('<span class="badge badge-info subtag">-'+subtagName[1]+':</span> ');
+					$('#subtagsCloud').append('<span class="badge badge-info subtag">-'+subtagName[1]+':</span> ');
 				};
 			}
 		});
 	
-		$('#subTagsList').on('click', '.subtag', function(event){
+		$('#subtagsCloud').on('click', '.subtag', function(event){
 			tagsValue = $('#addTags').val() + ' ' + $(this).text();
 			$('#addTags').val(tagsValue);
 			$('#addTags').focus();
@@ -207,12 +208,19 @@
 			{
 				placemark = vendorsList[index];
 				$('#editPricesGroup').show();
-				st = '';
+				$('#editPricesGroup').empty();
+				$('#editPricesGroup').append('<h6>Цены</h6>');
+				var i = 0;
 				for (var key in placemark.template['prices'])
 				{
-					st += key + ':'+ placemark.template['prices'][key] + ' '
+					var fieldName = 'prices-'+i+'-name';
+					$('#editPricesGroup').append('<input type="hidden" class_ = "d-none" name="'+fieldName+'" value="'+key+'">');
+					var fieldName = 'prices-'+i+'-price';
+					i += 1;
+					var html = `<div class="form-group" ><label for="${fieldName}">${key}</label>
+					<input name="${fieldName}" type="number" step="any" value="${placemark.template['prices'][key]}" class="form-control"><div>`;
+					$('#editPricesGroup').append(html);
 				}
-				$('#editPrices').val(st);
 				$("#editIsVendor").prop('checked', true);
 			}
 			else
@@ -225,7 +233,6 @@
 			$('#editName').val(placemark.template.name);
 			$('#editDescription').val(placemark.template.description);
 		});
-
 	});
 
 	function ResetMap(){

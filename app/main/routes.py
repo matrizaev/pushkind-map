@@ -89,13 +89,10 @@ def EditPlacemark():
 				p.description = escape(form.description.data)
 				p.name = escape(form.name.data)
 				if p.is_vendor:
-					pattern = re.compile('(\w+-\w+):(\d+(?:\.\d+)?)')
-					subtags_list = [x for x in pattern.finditer(form.prices.data)]
-					for subtag in subtags_list:
-						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag.group(1).lower()), SubtagPlacemark.placemark_id == p.id).first()
-						print(st)
+					for subtag in form.prices.data:
+						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag['name']), SubtagPlacemark.placemark_id == p.id).first()
 						if st:
-							st.price = float(subtag.group(2))
+							st.price = subtag['price']
 				db.session.commit()
 				flash('Метка успешно изменена.')
 			else:
