@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set tags_list = current_user.GetTags() %}
 {% block content %}
 
 <section class="placemarkForm" id="placemarkForm">
@@ -34,6 +35,8 @@
 				<div class="form-group" id="tagsRowCollapse">
 					{{ add_form.tags.label }}
 					{{ add_form.tags(class_ = 'form-control') }}
+					<div id="subTagsList">
+					</div>
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -46,7 +49,6 @@
 		</div>
 	</div>
 </section>
-{% set tags_list = current_user.GetTags() %}
 {% if tags_list|length > 0 %}
 	<section class="tagsCloud" id="tagsCloud">
 		<div class="container my-2 border bg-light">
@@ -55,10 +57,10 @@
 				{% for tag in tags_list %}
 					{% if tag.id in active_tag %}
 						{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
-						<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+						<a data-tagId="{{ tag.id }}" href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
 					{% else %}
 						{% set add_active_tags = active_tag + [tag.id] %}
-						<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+						<a data-tagId="{{ tag.id }}" href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
 					{% endif %}
 				{% endfor %}
 				</div>
@@ -81,7 +83,7 @@
 			<div class="form-group">
 				<label for="subTagSelect">Подтег</label>
 				<select class="form-control" id="subTagSelect">
-					{% for subtag in current_user.GetSubtags(active_tag) %}
+					{% for subtag in current_user.GetActiveSubtags(active_tag) %}
 						<option value="{{ subtag.name }}">{{ subtag.name }}</option>
 					{% endfor %}
 				</select>
@@ -113,7 +115,7 @@
 						{{ edit_form.description.label }}
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
-					<div class="form-group">
+					<div class="form-group">hierarchy
 						{{ edit_form.name.label }}
 						{{ edit_form.name(class_ = 'form-control') }}
 					</div>
@@ -145,6 +147,16 @@
 		endpointsList = [],
 		routesList = [],
 		myMap;
+		
+	var tagsHierarchy = {
+		{% for tag in tags_list %}
+			{{tag.id}}:{
+				{% for subtag in tags_list[tag] %}
+					{{subtag.id}}:"{{subtag.name}}",
+				{% endfor %}
+			},
+		{% endfor %}
+	};
 	
 	//
 	//Events handlers
@@ -159,7 +171,21 @@
 				event.preventDefault();
 				tagsValue = $('#addTags').val() + ' ' + $(this).text();
 				$('#addTags').val(tagsValue);
+				$('#addTags').focus();
+				tagId = $(this).attr('data-tagId');
+				subtags = tagsHierarchy[tagId];
+				$('#subTagsList').empty();
+				for (subtag in subtags){
+					subtagName = tagsHierarchy[tagId][subtag].split('-');
+					$('#subTagsList').append('<span class="badge badge-info subtag">-'+subtagName[1]+':</span> ');
+				};
 			}
+		});
+	
+		$('#subTagsList').on('click', '.subtag', function(event){
+			tagsValue = $('#addTags').val() + ' ' + $(this).text();
+			$('#addTags').val(tagsValue);
+			$('#addTags').focus();
 		});
 
 		addIsVendor.on('click', function() {

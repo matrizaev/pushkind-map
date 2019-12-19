@@ -34,10 +34,19 @@ class User(UserMixin, db.Model):
 	def VendorsPlacemarks(self, tags_list):
 		return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.tag_id.in_(tags_list))), Placemark.is_vendor == True).all()
 		
-	def GetTags(self):
-		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
+#	def GetTags(self):
+#		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
 		
-	def GetSubtags(self, tags_list):
+	def GetTags(self):
+		subtags = Subtag.query.filter(Subtag.placemarks.any(Placemark.user_id == 1)).all()
+		result = {}
+		for subtag in subtags:
+			if not subtag.tag in result:
+				result[subtag.tag] = list()
+			result[subtag.tag].append(subtag)
+		return result
+		
+	def GetActiveSubtags(self, tags_list):
 		return Subtag.query.filter(Subtag.tag_id.in_(tags_list)).all()
 		
 	def GetAvatar(self, size):
@@ -94,5 +103,14 @@ class Tag(db.Model):
 	name = db.Column(db.String(128), nullable=False, unique=True)
 	subtags = db.relationship('Subtag', back_populates='tag')
 	
+	def __hash__(self):
+		return hash((self.id, self.name))
+	
+	def __eg__(self, other):
+		return (self.id, self.name) == (other.id, other.name)
+		
+	def __ne__(self, other):
+		return not(self == other)
+	
 	def __repr__ (self):
-		return '<Tag {} ({})>'.format(self.name, ','.join([str(x) for x in self.subtags]))
+		return '<Tag {}>'.format(self.name)
