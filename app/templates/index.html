@@ -32,11 +32,7 @@
 					{{ add_form.description.label }}
 					{{ add_form.description(class_ = 'form-control') }}
 				</div>
-				<div class="form-group" id="tagsRowCollapse">
-					{{ add_form.tags.label }}
-					{{ add_form.tags(class_ = 'form-control') }}
-					<div id="subtagsCloud">
-					</div>
+				<div id="tagsListCollapse">
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -112,18 +108,14 @@
 					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
 					{{ edit_form.is_vendor(class_ = 'd-none', hidden = '') }}
 					<div class="form-group">
-						{{ edit_form.description.label }}
-						{{ edit_form.description(class_ = 'form-control') }}
-					</div>
-					<div class="form-group">
 						{{ edit_form.name.label }}
 						{{ edit_form.name(class_ = 'form-control') }}
 					</div>
-					<div id = "editPricesGroup">
-					{% for subform in edit_form.prices %}
-						{{ edit_form.prices.label }}
-						{{ edit_form.prices(class_ = 'form-control') }}
-					{% endfor %}	
+					<div class="form-group">
+						{{ edit_form.description.label }}
+						{{ edit_form.description(class_ = 'form-control') }}
+					</div>
+					<div id = "editPricesGroup">	
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -135,6 +127,71 @@
 	</div>
 </div>
 
+
+<div class="d-none" id="templates">
+	<div id="addTagTemplate" data-index="0" class="tagsHierarchy">
+		<div class="form-row my-2">
+			<div class="col-10">
+				<input type="text" class="form-control" placeholder="Тег" name="tags-_-name" required list="tagsList">
+			</div>
+			<div class="col-2 text-right">
+				<a class="btn btn-primary appendTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
+			</div>	
+		</div>
+		<div class="form-row my-2" data-subIndex ="0">
+			<div class="col-2">
+				&nbsp;
+			</div>
+			<div class="col-4">
+				<input type="text" class="form-control" placeholder="Подтег" name="tags-_-prices-0-name" required list="subtagsList">
+			</div>
+			<div class="col-4">
+				<input type="number" class="form-control" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
+			</div>
+			<div class="col-2 text-right">
+				<a class="btn btn-info appendSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
+			</div>	
+		</div>
+	</div>
+	<div class="form-row my-2" id="editPricesTemplate">
+		<div class="col">
+			<input type="text" class = "form-control" name="prices-_-name" value="" required readonly>
+		</div>
+		<div class="col">
+			<input name="prices-_-price" type="number" step="any" value="" class="form-control" required>
+		</div>
+	</div>
+	<div id="placemarkBaloonTemplate">
+		<pre></pre>
+		<h6 class="d-none">Цены</h6>
+		<p class="d-none font-weight-bold">
+		</p>
+		<a href="{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}" class="badge badge-danger" onclick="return confirm('Удалить?')">
+			<img class="octicon" src="http://admin.pushkind.com/static/octicons/x.svg" alt="Удалить">
+		</a>&nbsp;
+		<a class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">
+			<img class="octicon" src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="Редактировать">
+		</a>
+	</div>
+</div>
+
+
+<datalist id="tagsList" class="d-none">
+	{% for tag in tags_list %}
+		<option value="{{tag.name}}">
+	{% endfor %}
+</datalist>
+
+<datalist id="subtagsList" class="d-none">
+
+	{% for tag in tags_list %}
+		{% for subtag in tags_list[tag] %}
+			<option value="{{subtag.name.split('-')[1]}}">
+		{% endfor %}
+	{% endfor %}
+</datalist>
+
+
 {% endblock %}
 
 {% block scripts %}
@@ -143,59 +200,44 @@
 	//
 	//Globals
 	//
-	var	addIsVendor = $('#addIsVendor'),
-		tagsRowCollapse = $('#tagsRowCollapse'),
-		vendorsList = [],
+	var	vendorsList = [],
 		endpointsList = [],
 		routesList = [],
 		myMap;
-		
-	var tagsHierarchy = {
-		{% for tag in tags_list %}
-			{{tag.id}}:{
-				{% for subtag in tags_list[tag] %}
-					{{subtag.id}}:"{{subtag.name}}",
-				{% endfor %}
-			},
-		{% endfor %}
-	};
-	
+
 	//
 	//Events handlers
 	//
 	$(function() {
-		tagsRowCollapse.hide();
-		addIsVendor.prop('checked', false);
+		tagsListCollapse = $('#tagsListCollapse');
+		tagsListCollapse.hide();
+		$('#addIsVendor').prop('checked', false);
 
-		$('.tag').on('click', function(event){
-			if (addIsVendor.prop('checked') && Boolean($('#collapsedFormControl').attr('aria-expanded'))){
-				event.preventDefault();
-				tagsValue = $('#addTags').val() + ' ' + $(this).text();
-				$('#addTags').val(tagsValue);
-				$('#addTags').focus();
-				tagId = $(this).attr('data-tagId');
-				subtags = tagsHierarchy[tagId];
-				$('#subtagsCloud').empty();
-				for (subtag in subtags){
-					subtagName = tagsHierarchy[tagId][subtag].split('-');
-					$('#subtagsCloud').append('<span class="badge badge-info subtag">-'+subtagName[1]+':</span> ');
-				};
-			}
-		});
-	
-		$('#subtagsCloud').on('click', '.subtag', function(event){
-			tagsValue = $('#addTags').val() + ' ' + $(this).text();
-			$('#addTags').val(tagsValue);
-			$('#addTags').focus();
+		AddTag();
+
+		tagsListCollapse.on('click', '.appendTagButton', AddTag);
+		tagsListCollapse.on('click', '.appendSubTagButton', function(event){
+			var target = $(event.target);
+			var parent = target.closest('.tagsHierarchy');
+			var content = parent.find('.form-row').last();
+			var lastIndex = Number(content.attr('data-subIndex'));
+			content = content.clone();
+			content.attr('data-subIndex', lastIndex + 1);
+			var input = content.find('input[type=text]:first');
+			var name = input.attr('name').replace('-prices-'+lastIndex+'-name', '-prices-'+(lastIndex + 1)+'-name');
+			input.attr('name', name);
+			var input = content.find('input[type=number]:first');
+			var name = input.attr('name').replace('-prices-'+lastIndex+'-price', '-prices-'+(lastIndex + 1)+'-price');
+			input.attr('name', name);
+			parent.append(content);
 		});
 
-		addIsVendor.on('click', function() {
+		$('#addIsVendor').on('click', function() {
 		   if($(this).is(':checked')) {
-			  tagsRowCollapse.show();
-			  tagsRowCollapse.find('input').attr('required', true);
+			  tagsListCollapse.show();
 		   } else {
-			  tagsRowCollapse.hide();
-			  tagsRowCollapse.find('input').attr('required', false);
+			  tagsListCollapse.hide();
+			  tagsListCollapse.empty();
 		   }
 		});
 
@@ -207,19 +249,25 @@
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
 				placemark = vendorsList[index];
-				$('#editPricesGroup').show();
-				$('#editPricesGroup').empty();
-				$('#editPricesGroup').append('<h6>Цены</h6>');
+				var editPrices = $('#editPricesGroup');
+				editPrices.show();
+				editPrices.empty();
+				editPrices.append('<h6>Цены</h6>');
+				var template = $('#editPricesTemplate');
 				var i = 0;
 				for (var key in placemark.template['prices'])
 				{
-					var fieldName = 'prices-'+i+'-name';
-					$('#editPricesGroup').append('<input type="hidden" class_ = "d-none" name="'+fieldName+'" value="'+key+'">');
-					var fieldName = 'prices-'+i+'-price';
-					i += 1;
-					var html = `<div class="form-group" ><label for="${fieldName}">${key}</label>
-					<input name="${fieldName}" type="number" step="any" value="${placemark.template['prices'][key]}" class="form-control"><div>`;
-					$('#editPricesGroup').append(html);
+					var content = template.clone();
+					var input = content.find('input:first');
+					input.val(key);
+					var name = input.attr('name').replace('_', i);
+					input.attr('name', name);
+					input = content.find('input:last');
+					input.val(placemark.template['prices'][key]);
+					name = input.attr('name').replace('_', i);
+					input.attr('name', name);
+					i++;
+					editPrices.append(content);
 				}
 				$("#editIsVendor").prop('checked', true);
 			}
@@ -286,16 +334,16 @@
 	//
 	function AddEndpointObject(placemark, index)
 	{
-		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
-		var balloonContentBody =
-			'<pre>' + placemark.description + '</pre>' +
-			'<a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
-				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="remove">' +
-			'</a>&nbsp;'+
-			'<a data-placemarkType="endpoint" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
-				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a> ';
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#blueStretchyIcon'});
+	
+		var content = $('#placemarkBaloonTemplate').clone();
+		content.find('pre:first').text(placemark.description);
+		var elem = content.find('a:first');
+		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
+		elem.attr('href', urlForRemove);
+		elem = content.find('a:last');
+		elem.attr('data-placemarkType', 'endpoint');
+		elem.attr('data-placemarkIndex', index);
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
 		endpoint.template = placemark;
@@ -304,25 +352,22 @@
 	
 	function AddVendorObject(placemark, index)
 	{
-		var urlForRemove = "{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}".replace('replace_me', placemark.id);
-		var balloonContentBody =
-			'<pre>' + placemark.description + '</pre>' +
-			'<p class="font-weight-bold">Цены:<br>';
-
+		var content = $('#placemarkBaloonTemplate').clone();
+		content.find('pre:first').text(placemark.description);
+		var elem = content.find('a:first');
+		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
+		elem.attr('href', urlForRemove);
+		elem = content.find('a:last');
+		elem.attr('data-placemarkType', 'vendor');
+		elem.attr('data-placemarkIndex', index);
+		content.find('h6').removeClass('d-none');
+		var elem = content.find('p');
+		elem.removeClass('d-none');
 		for (var key in placemark['prices'])
 		{
-			balloonContentBody += key + ': '+ placemark['prices'][key] + '<br>'
+			elem.append(key + ': '+ placemark['prices'][key] + '<br>');
 		}
-			
-		balloonContentBody +=
-			'</p>' +
-			'<a class="badge badge-danger" href="' + urlForRemove + '" onclick="return confirm(\'Удалить?\')">' +
-				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/x.svg" alt="edit">' +
-			'</a>&nbsp;'+
-			'<a data-placemarkType="vendor" data-placemarkIndex="' + index + '" class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">' +
-				'<img class="octicon " src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="edit">' +
-			'</a>';
-		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:balloonContentBody}, {preset: 'islands#redStretchyIcon'});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
@@ -379,7 +424,7 @@
 			{
 				currentDistance = activeRoute.properties.get("distance").value;
 				route.activeDistance = currentDistance;
-				var header = route.vendor.template['name']+'<b>['+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р]</b>';
+				var header = route.vendor.template['name']+' <b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р)</b>';
 				route.vendor.properties.set('iconContent', header);
 				if (filterDistance > currentDistance)
 				{
@@ -404,6 +449,19 @@
 			}
 		});
 		routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
+	}
+	function AddTag()
+	{
+		var content = $("#addTagTemplate");
+		var tagsIndex = Number(content.attr('data-index'));
+		content.attr('data-index', tagsIndex + 1);
+		content = content.clone();
+		content.find('input').each(function(){
+			var name = $(this).attr('name').replace('_', tagsIndex);
+			$(this).attr('name', name);
+		});
+		content.removeAttr('id');
+		$('#tagsListCollapse').append(content);
 	}
 </script>
 {% endblock %}

@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
 #		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
 		
 	def GetTags(self):
-		subtags = Subtag.query.filter(Subtag.placemarks.any(Placemark.user_id == 1)).all()
+		subtags = Subtag.query.filter(Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
 		result = {}
 		for subtag in subtags:
 			if not subtag.tag in result:

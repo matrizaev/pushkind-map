@@ -41,37 +41,34 @@ def AddPlacemark():
 	form = AddPlacemarkForm(request.form)
 	if form.validate_on_submit():
 		try:
+			p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data)
+			db.session.add(p)
 			if form.is_vendor.data:
-				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = True)
-				pattern = re.compile('(\w+)(?:\s*-\w+:\d+(?:\.\d+)?)+')
-				tags_list = [x for x in pattern.finditer(form.tags.data)]
-				pattern = re.compile('-(\w+):(\d+(?:\.\d+)?)')
-				for tag in tags_list:
-					tag_name = tag.group(1).lower()
+				p.is_vendor = True
+				for tag in form.tags.data:
+					tag_name = tag['name'].lower()
 					t = Tag.query.filter(Tag.name == tag_name).first()
 					if not t:
 						t = Tag(name = tag_name)
 						db.session.add(t)
-					subtags_list = [x for x in pattern.finditer(tag.group(0))]
-					for subtag in subtags_list:
-						st_name = '{}-{}'.format(tag_name, subtag.group(1).lower())
+					for subtag in tag['prices']:
+						st_name = '{}-{}'.format(tag_name, subtag['name'].lower())
 						st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == t).first()
 						if not st:
 							st = Subtag(name = st_name)
 							db.session.add(st)
 						t.subtags.append(st)
-						subtag_placemark = SubtagPlacemark(price = float(subtag.group(2)))
+						subtag_placemark = SubtagPlacemark(price = subtag['price'])
 						subtag_placemark.placemark = p
 						subtag_placemark.subtag = st
 						db.session.add(subtag_placemark)
 			else:
-				p = Placemark(name = escape(form.name.data), description = escape(form.description.data), latitude = form.latitude.data, longitude = form.longitude.data, is_vendor = False)
-			db.session.add(p)
+				p.is_vendor = False
 			current_user.placemarks.append(p)
 			db.session.commit()
+			flash('Метка успешно добавлена.')
 		except:
 			flash('Ошибка при добавлении метки.')
-		flash('Метка успешно добавлена.')
 	else:
 		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
