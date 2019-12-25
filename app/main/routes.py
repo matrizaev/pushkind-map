@@ -1,10 +1,9 @@
 from app import db
 from app.models import Placemark, Tag, Subtag, SubtagPlacemark
-from flask import redirect, flash, render_template, request, jsonify, current_app, url_for, escape
+from flask import redirect, flash, render_template, request, url_for, escape
 from flask_login import current_user, login_required
 from app.main import bp
 from app.main.forms import AddPlacemarkForm, EditPlacemarkForm
-import re
 
 
 @bp.route('/')
