@@ -213,8 +213,6 @@
 		tagsListCollapse.hide();
 		$('#addIsVendor').prop('checked', false);
 
-		AddTag();
-
 		tagsListCollapse.on('click', '.appendTagButton', AddTag);
 		tagsListCollapse.on('click', '.appendSubTagButton', function(event){
 			var target = $(event.target);
@@ -235,6 +233,7 @@
 		$('#addIsVendor').on('click', function() {
 		   if($(this).is(':checked')) {
 			  tagsListCollapse.show();
+			  AddTag();
 		   } else {
 			  tagsListCollapse.hide();
 			  tagsListCollapse.empty();
