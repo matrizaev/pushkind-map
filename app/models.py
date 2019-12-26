@@ -69,7 +69,7 @@ class Placemark(db.Model):
 			'description':self.description,
 		}
 		if self.is_vendor:
-			result['prices'] = {st.subtag.name:st.price for st in self.subtags}
+			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}
 		return result
 	
 	def __repr__ (self):
@@ -79,6 +79,7 @@ class SubtagPlacemark(db.Model):
 	placemark_id = db.Column(db.Integer, db.ForeignKey('placemark.id'), primary_key = True)
 	subtag_id = db.Column(db.Integer, db.ForeignKey('subtag.id'), primary_key = True)
 	price = db.Column(db.Float, nullable=False, default=0.0, server_default='0.0')
+	units = db.Column(db.String(30), nullable=True)
 	placemark = db.relationship('Placemark', back_populates='subtags')
 	subtag = db.relationship('Subtag', back_populates='placemarks')
 	

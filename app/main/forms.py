@@ -6,6 +6,7 @@ from wtforms.validators import DataRequired, ValidationError, Length
 class EditPricesForm(Form):
 	name = StringField('Материал', validators = [DataRequired(message='Материал - обязательное поле.')])
 	price = FloatField('Цена', validators = [DataRequired(message='Цена - обязательное поле.')])
+	units = StringField('Единицы', validators = [Length(max = 30, message='Название не должно быть длиннее 30 символов.')])
 
 class AddTagForm(Form):
 	name = StringField('Тег', validators = [DataRequired(message='Тег - обязательное поле.')])

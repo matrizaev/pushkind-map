@@ -40,7 +40,7 @@ def AddPlacemark():
 	form = AddPlacemarkForm(request.form)
 	if form.validate_on_submit():
 		try:
-			p = Placemark(name = escape(form.name.data.strip()), description = escape(form.description.data.strip()), latitude = form.latitude.data, longitude = form.longitude.data)
+			p = Placemark(name = escape(form.name.data.strip()), description = form.description.data.strip(), latitude = form.latitude.data, longitude = form.longitude.data)
 			db.session.add(p)
 			if form.is_vendor.data:
 				p.is_vendor = True
@@ -57,7 +57,7 @@ def AddPlacemark():
 							st = Subtag(name = st_name)
 							db.session.add(st)
 						t.subtags.append(st)
-						subtag_placemark = SubtagPlacemark(price = subtag['price'])
+						subtag_placemark = SubtagPlacemark(price = subtag['price'], units = subtag['units'])
 						subtag_placemark.placemark = p
 						subtag_placemark.subtag = st
 						db.session.add(subtag_placemark)
@@ -82,13 +82,19 @@ def EditPlacemark():
 		try:
 			p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data).first()
 			if p:
-				p.description = escape(form.description.data.strip())
+				p.description = form.description.data.strip()
 				p.name = escape(form.name.data.strip())
 				if p.is_vendor:
-					for subtag in form.prices.data:
-						st = SubtagPlacemark.query.filter(SubtagPlacemark.subtag.has(Subtag.name == subtag['name']), SubtagPlacemark.placemark_id == p.id).first()
-						if st:
-							st.price = subtag['price']
+					edit_subtags = {st['name']:[st['price'], st['units']] for st in form.prices.data}
+					print(edit_subtags)
+					for subtag in p.subtags:
+						if subtag.subtag.name in edit_subtags:
+							subtag.price = edit_subtags[subtag.subtag.name][0]
+							subtag.units = edit_subtags[subtag.subtag.name][1]
+						else:
+							db.session.delete(subtag)
+				Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session=False)
+				Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session=False)
 				db.session.commit()
 				flash('Метка успешно изменена.')
 			else:

@@ -144,10 +144,13 @@
 				&nbsp;
 			</div>
 			<div class="col-4">
-				<input type="text" class="form-control" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
+				<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
 			</div>
-			<div class="col-4">
-				<input type="number" class="form-control" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
+			<div class="col-2">
+				<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
+			</div>
+			<div class="col-2">
+				<input type="text" class="form-control units" placeholder="Единицы" name="tags-_-prices-0-units">
 			</div>
 			<div class="col-2 text-right">
 				<a class="btn btn-info appendSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
@@ -156,10 +159,16 @@
 	</div>
 	<div class="form-row my-2" id="editPricesTemplate">
 		<div class="col">
-			<input type="text" class = "form-control" name="prices-_-name" value="" required readonly>
+			<input type="text" class = "form-control subtag" name="prices-_-name" value="" required readonly>
 		</div>
 		<div class="col">
-			<input name="prices-_-price" type="number" step="any" value="" class="form-control" required>
+			<input name="prices-_-price" type="number" step="any" value="" class="form-control price" required>
+		</div>
+		<div class="col">
+			<input name="prices-_-units" type="text" value="" class="form-control units" placeholder="Единицы">
+		</div>
+		<div class="col text-right">
+			<a class="btn btn-danger removeSubtagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
 		</div>
 	</div>
 	<div id="placemarkBaloonTemplate">
@@ -218,7 +227,13 @@
 		tagsListCollapse.on('click', '.removeTagButton', function(event){
 			var target = $(event.target);
 			var parent = target.closest('.tagsHierarchy');
-			if (parent.parent().children().length > 1)
+			if (tagsListCollapse.children().length > 1)
+				parent.remove();
+		});
+		$('#editPricesGroup').on('click', '.removeSubtagButton', function(event){
+			var target = $(event.target);
+			var parent = target.closest('.form-row');
+			if (parent.parent().children().length > 2)
 				parent.remove();
 		});
 		tagsListCollapse.on('click', '.appendSubTagButton', function(event){
@@ -228,12 +243,15 @@
 			var lastIndex = Number(content.attr('data-subIndex'));
 			content = content.clone();
 			content.attr('data-subIndex', lastIndex + 1);
-			var input = content.find('input[type=text]:first');
+			var input = content.find('input.subtag');
 			var name = input.attr('name').replace('-prices-'+lastIndex+'-name', '-prices-'+(lastIndex + 1)+'-name');
 			input.attr('name', name);
-			var input = content.find('input[type=number]:first');
+			var input = content.find('input.price');
 			var name = input.attr('name').replace('-prices-'+lastIndex+'-price', '-prices-'+(lastIndex + 1)+'-price');
 			input.attr('name', name);
+			var input = content.find('input.units');
+			var name = input.attr('name').replace('-prices-'+lastIndex+'-units', '-prices-'+(lastIndex + 1)+'-units');
+			input.attr('name', name);			
 			parent.append(content);
 		});
 
@@ -264,12 +282,16 @@
 				for (var key in placemark.template['prices'])
 				{
 					var content = template.clone();
-					var input = content.find('input:first');
+					var input = content.find('input.subtag');
 					input.val(key);
 					var name = input.attr('name').replace('_', i);
 					input.attr('name', name);
-					input = content.find('input:last');
-					input.val(placemark.template['prices'][key]);
+					input = content.find('input.price');
+					input.val(placemark.template['prices'][key][0]);
+					name = input.attr('name').replace('_', i);
+					input.attr('name', name);
+					input = content.find('input.units');
+					input.val(placemark.template['prices'][key][1]);
 					name = input.attr('name').replace('_', i);
 					input.attr('name', name);
 					i++;
@@ -284,7 +306,7 @@
 				$("#editIsVendor").prop('checked', false);
 			}
 			$('#editId').val(placemark.template.id);
-			$('#editName').val(placemark.template.name);
+			$('#editName').val(decodeEntities(placemark.template.name));
 			$('#editDescription').val(placemark.template.description);
 		});
 	});
@@ -375,7 +397,7 @@
 		elem.removeClass('d-none');
 		for (var key in placemark['prices'])
 		{
-			elem.append(key + ': '+ placemark['prices'][key] + '<br>');
+			elem.append(key + ': '+ placemark['prices'][key][0] + placemark['prices'][key][1] + '<br>');
 		}
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
@@ -427,24 +449,24 @@
 		});
 		var currentSubtag = $('#subTagSelect').val();
 		var minIndex = 0;
-		var minimalPrice = vendorsList[minIndex].template['prices'][currentSubtag];
+		var minimalPrice = vendorsList[minIndex].template['prices'][currentSubtag][0];
 		routesList.forEach(function(route, index){
 			activeRoute = route.getActiveRoute();
 			if (activeRoute)
 			{
 				currentDistance = activeRoute.properties.get("distance").value;
 				route.activeDistance = currentDistance;
-				var header = route.vendor.template['name']+' <b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag]+'Р)</b>';
+				var header = route.vendor.template['name']+' <b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag][0]+route.vendor.template['prices'][currentSubtag][1]+')</b>';
 				route.vendor.properties.set('iconContent', header);
 				if (filterDistance > currentDistance)
 				{
 					route.options.set("visible", true);
-					if (route.vendor.template['prices'][currentSubtag] < minimalPrice)
+					if (route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
 					{
-						minimalPrice = route.vendor.template['prices'][currentSubtag];
+						minimalPrice = route.vendor.template['prices'][currentSubtag][0];
 						minIndex = index;
 					}
-					else if (route.vendor.template['prices'][currentSubtag] == minimalPrice)
+					else if (route.vendor.template['prices'][currentSubtag][0] == minimalPrice)
 					{
 						if (currentDistance < routesList[minIndex].activeDistance)
 						{
@@ -473,5 +495,31 @@
 		content.removeAttr('id');
 		$('#tagsListCollapse').append(content);
 	}
+	
+	var decodeEntities = (function () {
+        //create a new html document (doesn't execute script tags in child elements)
+        var doc = document.implementation.createHTMLDocument("");
+        var element = doc.createElement('div');
+
+        function getText(str) {
+            element.innerHTML = str;
+            str = element.textContent;
+            element.textContent = '';
+            return str;
+        }
+
+        function decodeHTMLEntities(str) {
+            if (str && typeof str === 'string') {
+                var x = getText(str);
+                while (str !== x) {
+                    str = x;
+                    x = getText(x);
+                }
+                return x;
+            }
+        }
+        return decodeHTMLEntities;
+    })();
+	
 </script>
 {% endblock %}
