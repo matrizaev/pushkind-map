@@ -2,11 +2,11 @@
 {% set tags_list = current_user.GetTags() %}
 {% block content %}
 
-<section class="placemarkForm" id="placemarkForm">
+<section class="addPlacemarkSection" id="addPlacemarkSection">
 	<div class="container my-2 border bg-light">
 		<div class = "row my-2">
 			<div class="col">
-				<button id="collapsedFormControl" class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
+				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
 					Добавить метку
 				</button>
 			</div>
@@ -32,7 +32,7 @@
 					{{ add_form.description.label }}
 					{{ add_form.description(class_ = 'form-control') }}
 				</div>
-				<div id="tagsListCollapse">
+				<div id="collapsedTagsForm">
 				</div>
 				<div class="form-group">
 					<div class="form-check">
@@ -46,17 +46,17 @@
 	</div>
 </section>
 {% if tags_list|length > 0 %}
-	<section class="tagsCloud" id="tagsCloud">
+	<section class="tagsCloudSection" id="tagsCloudSection">
 		<div class="container my-2 border bg-light">
 			<div class="row">
 				<div class="col">
 				{% for tag in tags_list %}
 					{% if tag.id in active_tag %}
 						{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
-						<a data-tagId="{{ tag.id }}" href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+						<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
 					{% else %}
 						{% set add_active_tags = active_tag + [tag.id] %}
-						<a data-tagId="{{ tag.id }}" href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+						<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
 					{% endif %}
 				{% endfor %}
 				</div>
@@ -64,7 +64,7 @@
 		</div>
 	</section>
 {% endif %}
-<section class="mapWrapper h-100" id="mapWrapper">
+<section class="mapWrapperSection h-100" id="mapWrapperSection">
 	<div class="container border bg-light h-100">
 		{% if active_tag|length > 0 %}
 			<div class="form-group row my-2">
@@ -219,15 +219,15 @@
 	//Events handlers
 	//
 	$(function() {
-		tagsListCollapse = $('#tagsListCollapse');
-		tagsListCollapse.hide();
+		collapsedTagsForm = $('#collapsedTagsForm');
+		collapsedTagsForm.hide();
 		$('#addIsVendor').prop('checked', false);
 
-		tagsListCollapse.on('click', '.appendTagButton', AddTag);
-		tagsListCollapse.on('click', '.removeTagButton', function(event){
+		collapsedTagsForm.on('click', '.appendTagButton', AddTag);
+		collapsedTagsForm.on('click', '.removeTagButton', function(event){
 			var target = $(event.target);
 			var parent = target.closest('.tagsHierarchy');
-			if (tagsListCollapse.children().length > 1)
+			if (collapsedTagsForm.children().length > 1)
 				parent.remove();
 		});
 		$('#editPricesGroup').on('click', '.removeSubtagButton', function(event){
@@ -236,7 +236,7 @@
 			if (parent.parent().children().length > 2)
 				parent.remove();
 		});
-		tagsListCollapse.on('click', '.appendSubTagButton', function(event){
+		collapsedTagsForm.on('click', '.appendSubTagButton', function(event){
 			var target = $(event.target);
 			var parent = target.closest('.tagsHierarchy');
 			var content = parent.find('.form-row').last();
@@ -257,11 +257,11 @@
 
 		$('#addIsVendor').on('click', function() {
 		   if($(this).is(':checked')) {
-			  tagsListCollapse.show();
+			  collapsedTagsForm.show();
 			  AddTag();
 		   } else {
-			  tagsListCollapse.hide();
-			  tagsListCollapse.empty();
+			  collapsedTagsForm.hide();
+			  collapsedTagsForm.empty();
 		   }
 		});
 
@@ -441,7 +441,7 @@
 	
 	function FilterRoutesByDistance()
 	{
-		filterDistance = $('#distanceRange').val();
+		var filterDistance = Number($('#distanceRange').val());
 		$('#distanceLabel').text('Фильтр дистанций: '+ filterDistance + 'км');
 		filterDistance *= 1000;
 		vendorsList.forEach(function(vendor){
@@ -449,19 +449,20 @@
 		});
 		var currentSubtag = $('#subTagSelect').val();
 		var minIndex = 0;
-		var minimalPrice = vendorsList[minIndex].template['prices'][currentSubtag][0];
+		var minimalPrice = null;
 		routesList.forEach(function(route, index){
-			activeRoute = route.getActiveRoute();
+			var activeRoute = route.getActiveRoute();
 			if (activeRoute)
 			{
-				currentDistance = activeRoute.properties.get("distance").value;
+				var currentDistance = activeRoute.properties.get("distance").value;
 				route.activeDistance = currentDistance;
 				var header = route.vendor.template['name']+' <b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag][0]+route.vendor.template['prices'][currentSubtag][1]+')</b>';
 				route.vendor.properties.set('iconContent', header);
+				
 				if (filterDistance > currentDistance)
 				{
 					route.options.set("visible", true);
-					if (route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
+					if (minimalPrice === null || route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
 					{
 						minimalPrice = route.vendor.template['prices'][currentSubtag][0];
 						minIndex = index;
@@ -482,8 +483,8 @@
 		});
 		routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
 	}
-	function AddTag()
-	{
+
+	function AddTag(){
 		var content = $("#addTagTemplate");
 		var tagsIndex = Number(content.attr('data-index'));
 		content.attr('data-index', tagsIndex + 1);
@@ -493,7 +494,7 @@
 			$(this).attr('name', name);
 		});
 		content.removeAttr('id');
-		$('#tagsListCollapse').append(content);
+		$('#collapsedTagsForm').append(content);
 	}
 	
 	var decodeEntities = (function () {
