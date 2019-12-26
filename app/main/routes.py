@@ -51,7 +51,7 @@ def AddPlacemark():
 						t = Tag(name = tag_name)
 						db.session.add(t)
 					for subtag in tag['prices']:
-						st_name = '{}-{}'.format(tag_name, subtag['name'].lower().strip())
+						st_name = '{}/{}'.format(tag_name, subtag['name'].strip().lower().replace('/', '_'))
 						st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == t).first()
 						if not st:
 							st = Subtag(name = st_name)

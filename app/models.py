@@ -34,9 +34,6 @@ class User(UserMixin, db.Model):
 	def VendorsPlacemarks(self, tags_list):
 		return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.tag_id.in_(tags_list))), Placemark.is_vendor == True).all()
 		
-#	def GetTags(self):
-#		return Tag.query.filter(Tag.subtags.any(Subtag.placemarks.any(Placemark.user_id == self.id))).all()
-		
 	def GetTags(self):
 		subtags = Subtag.query.filter(Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
 		result = {}
@@ -47,7 +44,7 @@ class User(UserMixin, db.Model):
 		return result
 		
 	def GetActiveSubtags(self, tags_list):
-		return Subtag.query.filter(Subtag.tag_id.in_(tags_list)).all()
+		return Subtag.query.filter(Subtag.tag_id.in_(tags_list), Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
 		
 	def GetAvatar(self, size):
 		digest = md5(self.email.lower().encode('utf-8')).hexdigest()
@@ -86,7 +83,7 @@ class SubtagPlacemark(db.Model):
 	subtag = db.relationship('Subtag', back_populates='placemarks')
 	
 	def __repr__ (self):
-		return '{}[{}:{}]'.format(self.subtag.tag.name, self.subtag.name.split('-')[1], self.price)
+		return '{}[{}:{}]'.format(self.subtag.tag.name, self.subtag.name.split('/')[1], self.price)
 
 class Subtag(db.Model):
 	id = db.Column(db.Integer, primary_key = True)

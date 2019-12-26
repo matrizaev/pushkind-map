@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired, ValidationError, Length
 
 
 class EditPricesForm(Form):
-	name = StringField('Субтег', validators = [DataRequired(message='Подтег - обязательное поле.')])
+	name = StringField('Материал', validators = [DataRequired(message='Материал - обязательное поле.')])
 	price = FloatField('Цена', validators = [DataRequired(message='Цена - обязательное поле.')])
 
 class AddTagForm(Form):
