@@ -39,8 +39,8 @@
 		</div>
 		<div class="row my-1">
 			<div class="col-md-10">
-				Расстояние не более: <span id="distanceLabel">2500</span> км
-				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
+				Расстояние не более: <span id="distanceLabel">500</span> км
+				<input type="range" class="form-control-range" id="distanceRange" min="10" max="10000" value="500" onchange="FilterRoutesByDistance()">
 			</div>
 			<div class="col-md-2 text-right">
 				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
@@ -207,7 +207,6 @@
 </datalist>
 
 <datalist id="subtagsList" class="d-none">
-
 	{% for tag in tags_list %}
 		{% for subtag in tags_list[tag] %}
 			<option value="{{subtag.name.split('/')[1]}}">
@@ -236,7 +235,6 @@
 		collapsedTagsForm = $('#collapsedTagsForm');
 		collapsedTagsForm.hide();
 		$('#addIsVendor').prop('checked', false);
-
 		collapsedTagsForm.on('click', '.appendTagButton', AddTag);
 		collapsedTagsForm.on('click', '.removeSubTagButton', function(event){
 			var target = $(event.target).closest('.form-row');
