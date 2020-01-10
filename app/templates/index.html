@@ -490,6 +490,7 @@
 					
 					if (filterDistance > currentDistance)
 					{
+						route.options.set("visible", true);
 						if (currentDistance < routesList[minIndex].activeDistance)
 						{
 							minIndex = index;
