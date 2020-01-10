@@ -43,9 +43,6 @@ class User(UserMixin, db.Model):
 			result[subtag.tag].append(subtag)
 		return result
 		
-	def GetTagsId(self):
-		return [tag.id for tag in self.GetTags()]
-		
 	def GetActiveSubtags(self, tags_list):
 		return Subtag.query.filter(Subtag.tag_id.in_(tags_list), Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
 		

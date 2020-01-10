@@ -1,49 +1,59 @@
 {% extends "base.html" %}
 {% set tags_list = current_user.GetTags() %}
-{% set tags_set = current_user.GetTagsId() %}
 {% block content %}
 
 {% if tags_list|length > 0 %}
 	<div class="container my-1 border bg-light">
 		<div class="row">
 			<div class="col">
-			{% if tags_set|sum() == active_tag|sum() %}
-				<a href="{{ url_for('main.ShowIndex') }}" class="badge badge-success tag">Все</a>
-			{% else %}
-				<a href="{{ url_for('main.ShowIndex', active_tag = tags_set) }}" class="badge badge-primary tag">Все</a>
-			{% endif %}
-			{% for tag in tags_list %}
-				{% if tag.id in active_tag %}
-					{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
-				{% else %}
-					{% set add_active_tags = active_tag + [tag.id] %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
-				{% endif %}
-			{% endfor %}
+				{% for tag in tags_list %}
+					{% if tag.id in active_tag %}
+						{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+					{% else %}
+						{% set add_active_tags = active_tag + [tag.id] %}
+						<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+					{% endif %}
+				{% endfor %}
 			</div>
 		</div>
 	</div>
 {% endif %}
-
 <div class="my-1 border bg-light container">
 	{% if active_tag|length > 0 %}
 		<div class="row my-1">
-			<div class="col">
+			<div class="col-md-2">
+				Материал:
+			</div>
+			<div class="col-md">
 				<select class="form-control" id="subTagSelect">
+					<option value="all">Все</option>
 					{% for subtag in current_user.GetActiveSubtags(active_tag) %}
 						<option value="{{ subtag.name }}">{{ subtag.name }}</option>
 					{% endfor %}
 				</select>
 			</div>
+			<div class="col-md-2 text-right">
+				<button id="resetMap" class="btn btn-link">Сброс маршрутов</button>
+			</div>
 		</div>
 		<div class="row my-1">
 			<div class="col-md-10">
-				<span id="distanceLabel">Фильтр дистанций: 2500км</span>
+				Расстояние не более: <span id="distanceLabel">2500</span> км
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
 			</div>
 			<div class="col-md-2 text-right">
-				<button id="resetMap" class="btn btn-link">Сброс маршрутов</button>
+				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
+					Добавить метку
+				</button>
+			</div>
+		</div>
+	{% else%}
+		<div class="row my-1">
+			<div class="col-md-10">
+				&nbsp;
+			</div>
+			<div class="col-md-2 text-right">
 				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
 					Добавить метку
 				</button>
@@ -83,6 +93,8 @@
 		</form>
 	</div>
 </div>
+
+
 <div class="my-1 container-fluid d-flex h-100 flex-column">
 	<div class="row flex-fill d-flex">
 		<div class="col" id="map">
@@ -160,16 +172,16 @@
 		</div>
 	</div>
 	<div class="form-row my-1" id="editPricesTemplate">
-		<div class="col">
+		<div class="col-6">
 			<input type="text" class = "form-control subtag" name="prices-_-name" value="" required readonly>
 		</div>
-		<div class="col">
+		<div class="col-2">
 			<input name="prices-_-price" type="number" step="any" value="" class="form-control price" required>
 		</div>
-		<div class="col">
+		<div class="col-2">
 			<input name="prices-_-units" type="text" value="" class="form-control units" placeholder="Единицы">
 		</div>
-		<div class="col text-right">
+		<div class="col-2 text-right">
 			<a class="btn btn-danger removeSubtagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
 		</div>
 	</div>
@@ -326,13 +338,15 @@
 		});
 		var currentSubtag = $('#subTagSelect').val();
 		vendorsList.forEach(function(vendor){
-			if (currentSubtag in vendor.template['prices'])
+			if (currentSubtag == 'all' || currentSubtag in vendor.template['prices'])
 			{
 				vendor.options.set('preset', 'islands#redStretchyIcon');
+				vendor.active = true;
 			}
 			else
 			{
 				vendor.options.set('preset', 'islands#grayStretchyIcon');
+				vendor.active = false;
 			}
 			vendor.properties.set('iconContent', vendor.template['name']);
 		});
@@ -351,8 +365,8 @@
 		];
    
 		myMap = new ymaps.Map("map", {
-			center: [55.76, 37.64],
-			zoom: 3
+			center: [56.84, 60.60],
+			zoom: 4
 		});
 		
 		myMap.events.add('click', function(e){
@@ -408,13 +422,15 @@
 		vendor.template = placemark;
 		vendorsList.push(vendor);
 		var currentSubtag = $('#subTagSelect').val();
-		if (currentSubtag in vendor.template['prices'])
+		if (currentSubtag == 'all' || currentSubtag in vendor.template['prices'])
 		{
 			vendor.options.set('preset', 'islands#redStretchyIcon');
+			vendor.active = true;
 		}
 		else
 		{
 			vendor.options.set('preset', 'islands#grayStretchyIcon');
+			vendor.active = false;
 		}
 	}
 	
@@ -432,16 +448,15 @@
 			});
 			routesList = [];
 			
-			var currentSubtag = $('#subTagSelect').val();
 			vendorsList.forEach(function(vendor){
-				if (currentSubtag in vendor.template['prices'])
+				if (vendor.active)
 				{
 					var route = new ymaps.multiRouter.MultiRoute({
 					referencePoints: [
 						vendor.geometry.getCoordinates(),
 						target.geometry.getCoordinates()
 					]
-					}, {boundsAutoApply: true, wayPointVisible:false});
+					}, {boundsAutoApply: false, wayPointVisible:false});
 					route.vendor = vendor;
 					myMap.geoObjects.add(route);
 					route.events.add('update', FilterRoutesByDistance);
@@ -455,53 +470,88 @@
 	function FilterRoutesByDistance()
 	{
 		var filterDistance = Number($('#distanceRange').val());
-		$('#distanceLabel').text('Фильтр дистанций: '+ filterDistance + 'км');
+		$('#distanceLabel').text(filterDistance);
 		filterDistance *= 1000;
 		var currentSubtag = $('#subTagSelect').val();
-		vendorsList.forEach(function(vendor){
-			if (currentSubtag in vendor.template['prices'])
-			{
-				vendor.options.set('preset', 'islands#redStretchyIcon');
-			}
-			else
-			{
-				vendor.options.set('preset', 'islands#grayStretchyIcon');
-			}
-		});
 		var minIndex = 0;
 		var minimalPrice = null;
-		routesList.forEach(function(route, index){
-			var activeRoute = route.getActiveRoute();
-			if (activeRoute)
-			{
-				var currentDistance = activeRoute.properties.get("distance").value;
-				route.activeDistance = currentDistance;
-				var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
-				route.vendor.properties.set('iconContent', header);
-				
-				if (filterDistance > currentDistance)
+		if (currentSubtag == "all")
+		{
+			vendorsList.forEach(function(vendor){
+				vendor.options.set('preset', 'islands#redStretchyIcon');
+				vendor.active = true;
+			});
+			routesList.forEach(function(route, index){
+				var activeRoute = route.getActiveRoute();
+				if (activeRoute)
 				{
-					route.options.set("visible", true);
-					if (minimalPrice === null || route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
-					{
-						minimalPrice = route.vendor.template['prices'][currentSubtag][0];
-						minIndex = index;
-					}
-					else if (route.vendor.template['prices'][currentSubtag][0] == minimalPrice)
+					var currentDistance = activeRoute.properties.get("distance").value;
+					route.activeDistance = currentDistance;
+					var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км)';
+					route.vendor.properties.set('iconContent', header);
+					
+					if (filterDistance > currentDistance)
 					{
 						if (currentDistance < routesList[minIndex].activeDistance)
 						{
 							minIndex = index;
 						}
 					}
+					else
+					{
+						route.options.set("visible", false);
+					}
+				}
+			});		
+		}
+		else
+		{
+			vendorsList.forEach(function(vendor){
+				if (currentSubtag in vendor.template['prices'])
+				{
+					vendor.options.set('preset', 'islands#redStretchyIcon');
+					vendor.active = true;
 				}
 				else
 				{
-					route.options.set("visible", false);
+					vendor.options.set('preset', 'islands#grayStretchyIcon');
+					vendor.active = false;
 				}
-			}
-		});
-		routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
+			});
+			routesList.forEach(function(route, index){
+				var activeRoute = route.getActiveRoute();
+				if (activeRoute)
+				{
+					var currentDistance = activeRoute.properties.get("distance").value;
+					route.activeDistance = currentDistance;
+					var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
+					route.vendor.properties.set('iconContent', header);
+					
+					if (filterDistance > currentDistance)
+					{
+						route.options.set("visible", true);
+						if (minimalPrice === null || route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
+						{
+							minimalPrice = route.vendor.template['prices'][currentSubtag][0];
+							minIndex = index;
+						}
+						else if (route.vendor.template['prices'][currentSubtag][0] == minimalPrice)
+						{
+							if (currentDistance < routesList[minIndex].activeDistance)
+							{
+								minIndex = index;
+							}
+						}
+					}
+					else
+					{
+						route.options.set("visible", false);
+					}
+				}
+			});		
+		}
+		if (routesList.length > 0)
+			routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
 	}
 
 	function AddTag(){
