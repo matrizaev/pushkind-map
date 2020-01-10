@@ -28,7 +28,7 @@
 
 <div class="my-1 border bg-light container">
 	{% if active_tag|length > 0 %}
-		<div class="row my-2">
+		<div class="row my-1">
 			<div class="col">
 				<select class="form-control" id="subTagSelect">
 					{% for subtag in current_user.GetActiveSubtags(active_tag) %}
@@ -37,7 +37,7 @@
 				</select>
 			</div>
 		</div>
-		<div class="row my-2">
+		<div class="row my-1">
 			<div class="col-md-10">
 				<span id="distanceLabel">Фильтр дистанций: 2500км</span>
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="5000" value="2500" onchange="FilterRoutesByDistance()">
@@ -79,7 +79,7 @@
 					{{ add_form.is_vendor.label(class_ = 'form-check-label') }}
 				</div>
 			</div>
-			{{ add_form.submit(class_ = 'btn btn-primary mb-2') }}
+			{{ add_form.submit(class_ = 'btn btn-primary mb-1') }}
 		</form>
 	</div>
 </div>
@@ -129,7 +129,7 @@
 
 <div class="d-none" id="templates">
 	<div id="addTagTemplate" data-index="0" class="tagsHierarchy">
-		<div class="form-row my-2">
+		<div class="form-row my-1">
 			<div class="col-10">
 				<input type="text" class="form-control" placeholder="Тег" name="tags-_-name" required list="tagsList">
 			</div>
@@ -138,26 +138,28 @@
 				<a class="btn btn-primary appendTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
 			</div>	
 		</div>
-		<div class="form-row my-2" data-subIndex ="0">
-			<div class="col-2">
-				&nbsp;
+		<div  class="tagsHierarchy">
+			<div class="form-row my-1" data-subIndex ="0">
+				<div class="col-2">
+					&nbsp;
+				</div>
+				<div class="col-4">
+					<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
+				</div>
+				<div class="col-2">
+					<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
+				</div>
+				<div class="col-2">
+					<input type="text" class="form-control units" placeholder="Единицы" name="tags-_-prices-0-units">
+				</div>
+				<div class="col-2">
+					<a class="btn btn-danger removeSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
+					<a class="btn btn-info appendSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
+				</div>	
 			</div>
-			<div class="col-4">
-				<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
-			</div>
-			<div class="col-2">
-				<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
-			</div>
-			<div class="col-2">
-				<input type="text" class="form-control units" placeholder="Единицы" name="tags-_-prices-0-units">
-			</div>
-			<div class="col-2 text-right">
-				<a class="btn btn-danger removeSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
-				<a class="btn btn-info appendSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
-			</div>	
 		</div>
 	</div>
-	<div class="form-row my-2" id="editPricesTemplate">
+	<div class="form-row my-1" id="editPricesTemplate">
 		<div class="col">
 			<input type="text" class = "form-control subtag" name="prices-_-name" value="" required readonly>
 		</div>
@@ -224,8 +226,11 @@
 		$('#addIsVendor').prop('checked', false);
 
 		collapsedTagsForm.on('click', '.appendTagButton', AddTag);
-		collapsedTagsForm.on('click', '.removeSubtagButton', function(event){
-			alert('Test');
+		collapsedTagsForm.on('click', '.removeSubTagButton', function(event){
+			var target = $(event.target).closest('.form-row');
+			console.log(target.siblings());
+			if (target.siblings().length > 0)
+				target.remove();
 		});
 		collapsedTagsForm.on('click', '.removeTagButton', function(event){
 			var target = $(event.target);
