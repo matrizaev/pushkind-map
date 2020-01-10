@@ -7,6 +7,7 @@
 		<div class="container my-2 border bg-light">
 			<div class="row">
 				<div class="col">
+				<a href="{{ url_for('main.ShowIndex', active_tag = current_user.GetTagsId()) }}" class="badge badge-warning tag">Все</a>
 				{% for tag in tags_list %}
 					{% if tag.id in active_tag %}
 						{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
@@ -108,7 +109,9 @@
 						{{ edit_form.description.label }}
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
-					<div id = "editPricesGroup">	
+					<h6>Цены (с доставкой и НДС)</h6>
+					<div id = "editPricesGroup">
+						
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -140,7 +143,7 @@
 				<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
 			</div>
 			<div class="col-2">
-				<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
+				<input type="number" class="form-control price" step="any" placeholder="Цена (с доставкой и НДС)" name="tags-_-prices-0-price" required>
 			</div>
 			<div class="col-2">
 				<input type="text" class="form-control units" placeholder="Единицы" name="tags-_-prices-0-units">
@@ -166,7 +169,7 @@
 	</div>
 	<div id="placemarkBaloonTemplate">
 		<pre></pre>
-		<h6 class="d-none">Цены</h6>
+		<h6 class="d-none">Цены (с доставкой и НДС)</h6>
 		<p class="d-none font-weight-bold">
 		</p>
 		<a href="{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}" class="badge badge-danger" onclick="return confirm('Удалить?')">
@@ -269,7 +272,6 @@
 				var editPrices = $('#editPricesGroup');
 				editPrices.show();
 				editPrices.empty();
-				editPrices.append('<h6>Цены</h6>');
 				var template = $('#editPricesTemplate');
 				var i = 0;
 				for (var key in placemark.template['prices'])
@@ -332,7 +334,7 @@
    
 		myMap = new ymaps.Map("map", {
 			center: [55.76, 37.64],
-			zoom: 7
+			zoom: 3
 		});
 		
 		myMap.events.add('click', function(e){
@@ -343,15 +345,6 @@
 		
 		vendorsTemplateList.forEach(AddVendorObject);
 		endpointsTemplateList.forEach(AddEndpointObject);
-		
-		if (vendorsList['length'] > 0)
-		{
-			myMap.setCenter(vendorsList[0].geometry.getCoordinates());
-		}
-		else if (endpointsList['length'] > 0)
-		{
-			myMap.setCenter(endpointsList[0].geometry.getCoordinates());
-		}
 	});
 	
 	//
@@ -390,7 +383,7 @@
 		elem.removeClass('d-none');
 		for (var key in placemark['prices'])
 		{
-			elem.append(key + ': '+ placemark['prices'][key][0] + placemark['prices'][key][1] + '<br>');
+			elem.append(key + ': <b>'+ placemark['prices'][key][0]+'</b> '+ placemark['prices'][key][1] + '<br>');
 		}
 		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()}, {preset: 'islands#redStretchyIcon'});
 		myMap.geoObjects.add(vendor);
@@ -449,7 +442,7 @@
 			{
 				var currentDistance = activeRoute.properties.get("distance").value;
 				route.activeDistance = currentDistance;
-				var header = route.vendor.template['name']+' <b>('+Math.round(currentDistance/1000.0)+'км/'+route.vendor.template['prices'][currentSubtag][0]+route.vendor.template['prices'][currentSubtag][1]+')</b>';
+				var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
 				route.vendor.properties.set('iconContent', header);
 				
 				if (filterDistance > currentDistance)
@@ -491,7 +484,6 @@
 	}
 	
 	var decodeEntities = (function () {
-        //create a new html document (doesn't execute script tags in child elements)
         var doc = document.implementation.createHTMLDocument("");
         var element = doc.createElement('div');
 
