@@ -86,17 +86,22 @@ def EditPlacemark():
 				p.name = escape(form.name.data.strip())
 				if p.is_vendor:
 					edit_subtags = {st['name']:[st['price'], st['units']] for st in form.prices.data}
-					print(edit_subtags)
-					for subtag in p.subtags:
-						if subtag.subtag.name in edit_subtags:
-							subtag.price = edit_subtags[subtag.subtag.name][0]
-							subtag.units = edit_subtags[subtag.subtag.name][1]
-						else:
-							db.session.delete(subtag)
+					if (len(edit_subtags) == 0):
+						db.session.delete(p)
+					else:
+						for subtag in p.subtags:
+							if subtag.subtag.name in edit_subtags:
+								subtag.price = edit_subtags[subtag.subtag.name][0]
+								subtag.units = edit_subtags[subtag.subtag.name][1]
+							else:
+								db.session.delete(subtag)
 				Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session=False)
 				Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session=False)
 				db.session.commit()
-				flash('Метка успешно изменена.')
+				if (len(edit_subtags) > 0):
+					flash('Метка успешно изменена.')
+				else:
+					flash('Метка успешно удалена.')
 			else:
 				flash('Метка не найдена.')
 		except:
