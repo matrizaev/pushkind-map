@@ -82,6 +82,7 @@
 					{{ add_form.description.label }}
 					{{ add_form.description(class_ = 'form-control') }}
 				</div>
+				<div class = "dynamic-tags"></div>
 			</div>
 			<div class="form-group">
 				<div class="form-check">
@@ -124,9 +125,8 @@
 						{{ edit_form.description.label }}
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
-					<h6>Цены (с доставкой и НДС)</h6>
-					<div id = "editPricesGroup"></div>
-					<div id = "addPricesGroup"></div>
+					<h6>Цены (с доставкой и НДС):</h6>
+					<div id = "editPricesGroup" class="dynamic-tags"></div>
 				</div>
 				<div class="modal-footer">
 					{{ edit_form.submit(class_ = 'btn btn-primary') }}
@@ -151,13 +151,13 @@
 		</div>
 		<div  class="tagsHierarchy">
 			<div class="form-row my-1" data-subIndex ="0">
-				<div class="col-2">
+				<div class="col-1">
 					&nbsp;
 				</div>
 				<div class="col-4">
 					<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
 				</div>
-				<div class="col-2">
+				<div class="col-3">
 					<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
 				</div>
 				<div class="col-2">
@@ -170,23 +170,9 @@
 			</div>
 		</div>
 	</div>
-	<div class="form-row my-1" id="editPricesTemplate">
-		<div class="col-6">
-			<input type="text" class = "form-control subtag" name="prices-_-name" value="" required readonly>
-		</div>
-		<div class="col-2">
-			<input name="prices-_-price" type="number" step="any" value="" class="form-control price" required>
-		</div>
-		<div class="col-2">
-			<input name="prices-_-units" type="text" value="" class="form-control units" placeholder="Единицы">
-		</div>
-		<div class="col-2 text-right">
-			<a class="btn btn-danger removeSubtagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
-		</div>
-	</div>
 	<div id="placemarkBaloonTemplate">
 		<div></div>
-		<div>Цены (с доставкой и НДС)</div>
+		<div>Цены (с доставкой и НДС):</div>
 		<div></div>
 		<a href="{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}" class="badge badge-danger" onclick="return confirm('Удалить?')">
 			<img class="octicon" src="http://admin.pushkind.com/static/octicons/x.svg" alt="Удалить">
@@ -230,83 +216,97 @@
 	//Events handlers
 	//
 	$(function() {
-		collapsedTagsForm = $('#collapsedTagsForm');
-		collapsedTagsForm.hide();
+		var dynamicTags = $('.dynamic-tags');
+		$('#collapsedTagsForm').hide();
 		$('#addIsVendor').prop('checked', false);
-		collapsedTagsForm.on('click', '.appendTagButton', AddTag);
-		collapsedTagsForm.on('click', '.removeSubTagButton', function(event){
+		dynamicTags.on('click', '.appendTagButton', AddTag);
+		dynamicTags.on('click', '.removeSubTagButton', function(event){
 			var target = $(event.target).closest('.form-row');
 			console.log(target.siblings());
 			if (target.siblings().length > 0)
 				target.remove();
 		});
-		collapsedTagsForm.on('click', '.removeTagButton', function(event){
+		dynamicTags.on('click', '.removeTagButton', function(event){
 			var target = $(event.target);
 			var parent = target.closest('.tagsHierarchy');
-			if (collapsedTagsForm.children().length > 1)
+			if (parent.parent().children().length > 1)
 				parent.remove();
 		});
-		$('#editPricesGroup').on('click', '.removeSubtagButton', function(event){
-			var parent = $(event.target).closest('.form-row');
-			parent.remove();
-		});
-		collapsedTagsForm.on('click', '.appendSubTagButton', function(event){
+		dynamicTags.on('click', '.appendSubTagButton', function(event){
 			var target = $(event.target);
 			var parent = target.closest('.tagsHierarchy');
 			var content = parent.find('.form-row').last();
 			var lastIndex = Number(content.attr('data-subIndex'));
 			content = content.clone();
 			content.attr('data-subIndex', lastIndex + 1);
-			var input = content.find('input.subtag');
-			var name = input.attr('name').replace('-prices-'+lastIndex+'-name', '-prices-'+(lastIndex + 1)+'-name');
-			input.attr('name', name);
-			var input = content.find('input.price');
-			var name = input.attr('name').replace('-prices-'+lastIndex+'-price', '-prices-'+(lastIndex + 1)+'-price');
-			input.attr('name', name);
-			var input = content.find('input.units');
-			var name = input.attr('name').replace('-prices-'+lastIndex+'-units', '-prices-'+(lastIndex + 1)+'-units');
-			input.attr('name', name);			
+			content.find('input').each(function(){
+				var name = $(this).attr('name').replace('-prices-'+lastIndex+'-', '-prices-'+(lastIndex + 1)+'-');
+				$(this).attr('name', name);
+				$(this).removeAttr('readonly');
+			});			
 			parent.append(content);
 		});
-
 		$('#addIsVendor').on('click', function() {
-		   if($(this).is(':checked')) {
-			  collapsedTagsForm.show();
-			  AddTag();
-		   } else {
-			  collapsedTagsForm.hide();
-			  collapsedTagsForm.children('.tagsHierarchy').remove();
-		   }
+			if($(this).is(':checked')){
+				$('#collapsedTagsForm').show();
+				var content = $('#addTagTemplate').clone();
+				content.removeAttr('id');
+				content.find('input').each(function(){
+					var name = $(this).attr('name').replace('_', 0);
+					$(this).attr('name', name);
+				});
+				$('#collapsedTagsForm').children('.dynamic-tags').append(content);
+			} else {
+				$('#collapsedTagsForm').hide();
+				$('#collapsedTagsForm').children('.dynamic-tags').empty();
+			}
 		});
-
 		$('#resetMap').on('click', ResetMap);
 		$('#subTagSelect').on('change', ResetMap);
-		
 		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
 			index = e.relatedTarget.getAttribute('data-placemarkIndex');
+			var editPrices = $('#editPricesGroup');
+			editPrices.empty();
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
 				placemark = vendorsList[index];
-				var editPrices = $('#editPricesGroup');
-				editPrices.show();
-				editPrices.empty();
-				var template = $('#editPricesTemplate');
+				var template = $('#addTagTemplate');
 				var i = 0;
-				for (var key in placemark.template['prices'])
+				for (var tag in placemark.template['tags'])
 				{
 					var content = template.clone();
-					var input = content.find('input.subtag');
-					input.val(key);
+					content.removeAttr('id');
+					var input = content.find('input:first');
+					input.val(tag);
+					input.attr('readonly', true);
 					var name = input.attr('name').replace('_', i);
 					input.attr('name', name);
-					input = content.find('input.price');
-					input.val(placemark.template['prices'][key][0]);
-					name = input.attr('name').replace('_', i);
-					input.attr('name', name);
-					input = content.find('input.units');
-					input.val(placemark.template['prices'][key][1]);
-					name = input.attr('name').replace('_', i);
-					input.attr('name', name);
+					subContent = content.find('.tagsHierarchy>.form-row');
+					var lastIndex = Number(subContent.attr('data-subIndex'));
+					subContent.attr('data-subIndex', lastIndex + 1);
+					for (var subtag in placemark.template['tags'][tag])
+					{
+						var input = subContent.find('input.subtag');
+						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-name', '-prices-'+(lastIndex + 1)+'-name');
+						input.attr('name', name);
+						input.attr('readonly', true);
+						input.val(subtag.split(' / ')[1]);
+						var input = subContent.find('input.price');
+						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-price', '-prices-'+(lastIndex + 1)+'-price');
+						input.attr('name', name);
+						input.val(placemark.template['tags'][tag][subtag][0]);
+						var input = subContent.find('input.units');
+						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-units', '-prices-'+(lastIndex + 1)+'-units');
+						input.attr('name', name);
+						input.val(placemark.template['tags'][tag][subtag][1]);
+						if (lastIndex < Object.keys(placemark.template['tags'][tag]).length - 1)
+						{
+							subContent = subContent.clone();
+							content.append(subContent);
+							lastIndex++
+							subContent.attr('data-subIndex', lastIndex + 1);
+						}
+					}
 					i++;
 					editPrices.append(content);
 				}
@@ -315,7 +315,6 @@
 			else
 			{
 				placemark = endpointsList[index];
-				$('#editPricesGroup').hide();
 				$("#editIsVendor").prop('checked', false);
 			}
 			$('#editId').val(placemark.template.id);
@@ -380,14 +379,6 @@
 	//
 	function AddEndpointObject(placemark, index)
 	{
-		/*
-		var content = $('#placemarkBaloonTemplate').clone();
-		var elem = content.find('a:first');
-		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
-		elem.attr('href', urlForRemove);
-		elem = content.find('a:last');
-		elem.attr('data-placemarkType', 'endpoint');
-		elem.attr('data-placemarkIndex', index);*/
 		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
@@ -406,16 +397,17 @@
 		elem.attr('data-placemarkType', 'vendor');
 		elem.attr('data-placemarkIndex', index);
 		var elem = content.find('div:last');
-		for (var key in placemark['prices'])
+		for (var tag in placemark['tags'])
 		{
-			elem.append(key + ': <b>'+ placemark['prices'][key][0]+'</b> '+ placemark['prices'][key][1] + '<br>');
+			for (var subtag in placemark['tags'][tag])
+				elem.append(subtag + ': <b>'+ placemark['tags'][tag][subtag][0]+'</b> '+ placemark['tags'][tag][subtag][1] + '<br>');
 		}
 		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html()});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
 		var currentSubtag = $('#subTagSelect').val();
-		if (currentSubtag == 'all' || currentSubtag in vendor.template['prices'])
+		if (currentSubtag == 'all' || currentSubtag in placemark['prices'])
 		{
 			vendor.options.set('preset', 'islands#redStretchyIcon');
 			vendor.active = true;
@@ -480,11 +472,11 @@
 				{
 					var currentDistance = activeRoute.properties.get("distance").value;
 					route.activeDistance = currentDistance;
-					var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км)';
-					route.vendor.properties.set('iconContent', header);
 					
 					if (filterDistance > currentDistance)
 					{
+						var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км)';
+						route.vendor.properties.set('iconContent', header);
 						route.options.set("visible", true);
 						if (currentDistance < routesList[minIndex].activeDistance)
 						{
@@ -494,6 +486,7 @@
 					else
 					{
 						route.options.set("visible", false);
+						route.vendor.properties.set('iconContent', '');
 					}
 				}
 			});		
@@ -518,12 +511,12 @@
 				{
 					var currentDistance = activeRoute.properties.get("distance").value;
 					route.activeDistance = currentDistance;
-					var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
-					route.vendor.properties.set('iconContent', header);
 					
 					if (filterDistance > currentDistance)
 					{
 						route.options.set("visible", true);
+						var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
+						route.vendor.properties.set('iconContent', header);
 						if (minimalPrice === null || route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
 						{
 							minimalPrice = route.vendor.template['prices'][currentSubtag][0];
@@ -540,6 +533,7 @@
 					else
 					{
 						route.options.set("visible", false);
+						route.vendor.properties.set('iconContent', '');
 					}
 				}
 			});		
@@ -548,30 +542,29 @@
 			routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
 	}
 
-	function AddTag(){
-		var content = $("#addTagTemplate");
-		var tagsIndex = Number(content.attr('data-index'));
-		content.attr('data-index', tagsIndex + 1);
-		content = content.clone();
+	function AddTag(event){
+		var content = $("#addTagTemplate").clone();
+		var parent = $(event.target).closest('.dynamic-tags');
+		var lastTag = parent.children('.tagsHierarchy:last');
+		var tagsIndex = Number(lastTag.attr('data-index')) + 1;
+		content.attr('data-index', tagsIndex);
 		content.find('input').each(function(){
 			var name = $(this).attr('name').replace('_', tagsIndex);
 			$(this).attr('name', name);
 		});
 		content.removeAttr('id');
-		$('#collapsedTagsForm').append(content);
+		parent.append(content);
 	}
 	
 	var decodeEntities = (function () {
         var doc = document.implementation.createHTMLDocument("");
         var element = doc.createElement('div');
-
         function getText(str) {
             element.innerHTML = str;
             str = element.textContent;
             element.textContent = '';
             return str;
         }
-
         function decodeHTMLEntities(str) {
             if (str && typeof str === 'string') {
                 var x = getText(str);

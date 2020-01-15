@@ -70,6 +70,17 @@ class Placemark(db.Model):
 		}
 		if self.is_vendor:
 			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}
+			tags = self.GetTags()
+			result['tags'] = {t.name:{st.name:[tags[t][st].price, tags[t][st].units if tags[t][st].units else ''] for st in tags[t]} for t in tags}
+		return result
+	
+	def GetTags(self):
+		subtags = Subtag.query.filter(Subtag.placemarks.any(SubtagPlacemark.placemark_id == self.id)).all()
+		result = {}
+		for subtag  in subtags:
+			if not subtag.tag in result:
+				result[subtag.tag] = {}
+			result[subtag.tag][subtag] = SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == self.id, SubtagPlacemark.subtag_id == subtag.id).first()
 		return result
 	
 	def __repr__ (self):
@@ -82,9 +93,18 @@ class SubtagPlacemark(db.Model):
 	units = db.Column(db.String(30), nullable=True)
 	placemark = db.relationship('Placemark', back_populates='subtags')
 	subtag = db.relationship('Subtag', back_populates='placemarks')
+
+	def __hash__(self):
+		return hash((self.placemark_id, self.subtag_id))
 	
+	def __eg__(self, other):
+		return (self.placemark_id, self.subtag_id) == (other.placemark_id, other.subtag_id)
+		
+	def __ne__(self, other):
+		return not(self == other)
+
 	def __repr__ (self):
-		return '{}[{}:{}]'.format(self.subtag.tag.name, self.subtag.name.split('/')[1], self.price)
+		return '{}[{}:{}]'.format(self.subtag.tag.name, self.subtag.name.split(' / ')[1], self.price)
 
 class Subtag(db.Model):
 	id = db.Column(db.Integer, primary_key = True)
@@ -92,6 +112,15 @@ class Subtag(db.Model):
 	tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
 	tag = db.relationship('Tag', back_populates='subtags')
 	placemarks = db.relationship('SubtagPlacemark', back_populates='subtag')
+
+	def __hash__(self):
+		return hash(self.id)
+	
+	def __eg__(self, other):
+		return self.id == other.id
+		
+	def __ne__(self, other):
+		return not(self == other)
 	
 	def __repr__ (self):
 		return '<Subtag {}>'.format(self.name)
@@ -102,10 +131,10 @@ class Tag(db.Model):
 	subtags = db.relationship('Subtag', back_populates='tag')
 	
 	def __hash__(self):
-		return hash((self.id, self.name))
+		return hash(self.id)
 	
 	def __eg__(self, other):
-		return (self.id, self.name) == (other.id, other.name)
+		return self.id == other.id
 		
 	def __ne__(self, other):
 		return not(self == other)

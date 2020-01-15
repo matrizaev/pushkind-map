@@ -26,6 +26,6 @@ class EditPlacemarkForm(FlaskForm):
 	id = IntegerField('Идентификатор', validators = [DataRequired(message='Идентификатор  - обязательное поле.')], id = 'editId')
 	description = TextAreaField('Описание', validators = [Length(max = 128, message='Описание не должно быть длиннее 128 символов.')], id = 'editDescription')
 	name = StringField('Название', validators = [DataRequired(message='Название  - обязательное поле.'), Length(max = 128, message='Название не должно быть длиннее 128 символов.')], id='editName')
-	prices = FieldList(FormField(EditPricesForm))
+	tags = FieldList(FormField(AddTagForm))
 	is_vendor = BooleanField ('Поставщик', id='editIsVendor')
 	submit = SubmitField('Сохранить', id = 'editSubmit')
