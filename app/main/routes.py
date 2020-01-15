@@ -40,18 +40,19 @@ def AddPlacemark():
 	form = AddPlacemarkForm(request.form)
 	if form.validate_on_submit():
 		try:
-			p = Placemark(name = escape(form.name.data.strip()), description = form.description.data.strip(), latitude = form.latitude.data, longitude = form.longitude.data)
+			p = Placemark(name = escape(form.name.data.strip()), latitude = form.latitude.data, longitude = form.longitude.data)
 			db.session.add(p)
 			if form.is_vendor.data:
 				p.is_vendor = True
+				p.description = form.description.data.strip()
 				for tag in form.tags.data:
-					tag_name = tag['name'].lower().strip()
+					tag_name = tag['name'].strip().lower().replace('/', '_')
 					t = Tag.query.filter(Tag.name == tag_name).first()
 					if not t:
 						t = Tag(name = tag_name)
 						db.session.add(t)
 					for subtag in tag['prices']:
-						st_name = '{}/{}'.format(tag_name, subtag['name'].strip().lower().replace('/', '_'))
+						st_name = '{} / {}'.format(tag_name, subtag['name'].strip().lower().replace('/', '_'))
 						st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == t).first()
 						if not st:
 							st = Subtag(name = st_name)
@@ -82,9 +83,9 @@ def EditPlacemark():
 		try:
 			p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data).first()
 			if p:
-				p.description = form.description.data.strip()
 				p.name = escape(form.name.data.strip())
 				if p.is_vendor:
+					p.description = form.description.data.strip()
 					edit_subtags = {st['name']:[st['price'], st['units']] for st in form.prices.data}
 					if (len(edit_subtags) == 0):
 						db.session.delete(p)

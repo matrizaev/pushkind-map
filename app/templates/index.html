@@ -77,11 +77,11 @@
 				{{ add_form.name.label }}
 				{{ add_form.name(class_ = 'form-control', autofocus = '') }}
 			</div>
-			<div class="form-group">
-				{{ add_form.description.label }}
-				{{ add_form.description(class_ = 'form-control') }}
-			</div>
 			<div id="collapsedTagsForm">
+				<div class="form-group">
+					{{ add_form.description.label }}
+					{{ add_form.description(class_ = 'form-control') }}
+				</div>
 			</div>
 			<div class="form-group">
 				<div class="form-check">
@@ -125,9 +125,8 @@
 						{{ edit_form.description(class_ = 'form-control') }}
 					</div>
 					<h6>Цены (с доставкой и НДС)</h6>
-					<div id = "editPricesGroup">
-						
-					</div>
+					<div id = "editPricesGroup"></div>
+					<div id = "addPricesGroup"></div>
 				</div>
 				<div class="modal-footer">
 					{{ edit_form.submit(class_ = 'btn btn-primary') }}
@@ -186,10 +185,9 @@
 		</div>
 	</div>
 	<div id="placemarkBaloonTemplate">
-		<pre></pre>
-		<h6 class="d-none">Цены (с доставкой и НДС)</h6>
-		<p class="d-none font-weight-bold">
-		</p>
+		<div></div>
+		<div>Цены (с доставкой и НДС)</div>
+		<div></div>
 		<a href="{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}" class="badge badge-danger" onclick="return confirm('Удалить?')">
 			<img class="octicon" src="http://admin.pushkind.com/static/octicons/x.svg" alt="Удалить">
 		</a>&nbsp;
@@ -209,7 +207,7 @@
 <datalist id="subtagsList" class="d-none">
 	{% for tag in tags_list %}
 		{% for subtag in tags_list[tag] %}
-			<option value="{{subtag.name.split('/')[1]}}">
+			<option value="{{subtag.name.split(' / ')[1]}}">
 		{% endfor %}
 	{% endfor %}
 </datalist>
@@ -277,7 +275,7 @@
 			  AddTag();
 		   } else {
 			  collapsedTagsForm.hide();
-			  collapsedTagsForm.empty();
+			  collapsedTagsForm.children('.tagsHierarchy').remove();
 		   }
 		});
 
@@ -346,7 +344,7 @@
 				vendor.options.set('preset', 'islands#grayStretchyIcon');
 				vendor.active = false;
 			}
-			vendor.properties.set('iconContent', vendor.template['name']);
+			vendor.properties.set('iconContent', '');
 		});
 	}
 	
@@ -382,16 +380,15 @@
 	//
 	function AddEndpointObject(placemark, index)
 	{
-	
+		/*
 		var content = $('#placemarkBaloonTemplate').clone();
-		content.find('pre:first').text(placemark.description);
 		var elem = content.find('a:first');
 		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
 		elem.attr('href', urlForRemove);
 		elem = content.find('a:last');
 		elem.attr('data-placemarkType', 'endpoint');
-		elem.attr('data-placemarkIndex', index);
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()}, {preset: 'islands#blueStretchyIcon'});
+		elem.attr('data-placemarkIndex', index);*/
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name}, {preset: 'islands#blueStretchyIcon'});
 		myMap.geoObjects.add(endpoint);
 		endpoint.events.add('click', OnPlacemarkClick);
 		endpoint.template = placemark;
@@ -401,21 +398,19 @@
 	function AddVendorObject(placemark, index)
 	{
 		var content = $('#placemarkBaloonTemplate').clone();
-		content.find('pre:first').text(placemark.description);
+		content.find('div:first').text(placemark.description);
 		var elem = content.find('a:first');
 		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
 		elem.attr('href', urlForRemove);
 		elem = content.find('a:last');
 		elem.attr('data-placemarkType', 'vendor');
 		elem.attr('data-placemarkIndex', index);
-		content.find('h6').removeClass('d-none');
-		var elem = content.find('p');
-		elem.removeClass('d-none');
+		var elem = content.find('div:last');
 		for (var key in placemark['prices'])
 		{
 			elem.append(key + ': <b>'+ placemark['prices'][key][0]+'</b> '+ placemark['prices'][key][1] + '<br>');
 		}
-		var vendor = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name, balloonContentHeader: placemark.name, balloonContentBody:content.html()});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html()});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
