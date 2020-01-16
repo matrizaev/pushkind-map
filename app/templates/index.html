@@ -116,7 +116,6 @@
 				<div class="modal-body">
 					{{ edit_form.csrf_token(id='editCSRF') }}
 					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
-					{{ edit_form.is_vendor(class_ = 'd-none', hidden = '') }}
 					<div class="form-group">
 						{{ edit_form.name.label }}
 						{{ edit_form.name(class_ = 'form-control') }}
@@ -310,16 +309,10 @@
 					i++;
 					editPrices.append(content);
 				}
-				$("#editIsVendor").prop('checked', true);
+				$('#editId').val(placemark.template.id);
+				$('#editName').val(decodeEntities(placemark.template.name));
+				$('#editDescription').val(placemark.template.description);
 			}
-			else
-			{
-				placemark = endpointsList[index];
-				$("#editIsVendor").prop('checked', false);
-			}
-			$('#editId').val(placemark.template.id);
-			$('#editName').val(decodeEntities(placemark.template.name));
-			$('#editDescription').val(placemark.template.description);
 		});
 	});
 
@@ -391,7 +384,7 @@
 		var content = $('#placemarkBaloonTemplate').clone();
 		content.find('div:first').text(placemark.description);
 		var elem = content.find('a:first');
-		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);;
+		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);
 		elem.attr('href', urlForRemove);
 		elem = content.find('a:last');
 		elem.attr('data-placemarkType', 'vendor');

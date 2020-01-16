@@ -84,17 +84,16 @@ def EditPlacemark():
 	form = EditPlacemarkForm(request.form)
 	if form.validate_on_submit():
 		try:
-			p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data).first()
+			p = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data, Placemark.is_vendor == True).first()
 			if p:
 				p.name = escape(form.name.data.strip())
-				if p.is_vendor:
-					if (len(form.tags.data) == 0):
-						db.session.delete(p)
-						flash('Метка успешно удалена.')
-					else:
-						p.description = form.description.data.strip()
-						SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == p.id).delete(synchronize_session=False)
-						MakeTagsHierarchy(p, form.tags.data)
+				if (len(form.tags.data) == 0):
+					db.session.delete(p)
+					flash('Метка успешно удалена.')
+				else:
+					p.description = form.description.data.strip()
+					SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == p.id).delete(synchronize_session=False)
+					MakeTagsHierarchy(p, form.tags.data)
 				Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session=False)
 				Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session=False)
 				db.session.commit()
