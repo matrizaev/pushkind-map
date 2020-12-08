@@ -1,0 +1,16 @@
+# C extensions
+*.so
+*.o
+*.pid
+ecwid-api
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.env
+
+#Flask
+app.db
+logs/
+migrations/

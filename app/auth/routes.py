@@ -5,6 +5,7 @@ from flask_login import login_user, logout_user, current_user
 from werkzeug.urls import url_parse
 from app.auth.forms import LoginForm, RegistrationForm
 from app.models import User
+from flask import current_app
 
 @bp.route('/login/', methods = ['GET', 'POST'])
 def PerformLogin():
@@ -17,6 +18,7 @@ def PerformLogin():
 			flash('Некорректный логин или пароль')
 			return render_template ('auth/login.html', form = form)
 		login_user(user, remember=form.remember_me.data)
+		current_app.logger.info('{} logged'.format(user.email))
 		next_page = request.args.get('next')
 		if not next_page or url_parse(next_page).netloc != '':
 			next_page = url_for('main.ShowIndex')
@@ -34,6 +36,7 @@ def PerformRegistration():
 		db.session.add(user)
 		db.session.commit()
 		flash ('Теперь вы можете войти.')
+		current_app.logger.info('{} registered'.format(user.email))
 		return redirect(url_for('auth.PerformLogin'))
 	return render_template ('auth/register.html', form = form)
 
