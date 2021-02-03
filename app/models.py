@@ -31,8 +31,14 @@ class User(UserMixin, db.Model):
 	def EndpointPlacemarks(self):
 		return self.placemarks.filter(Placemark.is_vendor == False).all()
 		
-	def VendorsPlacemarks(self, tags_list):
-		return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.tag_id.in_(tags_list))), Placemark.is_vendor == True).all()
+	def VendorsPlacemarks(self, tags_list = None, search = None):
+		search = f'%{search}%'
+		if len(tags_list) > 0:
+			return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.tag_id.in_(tags_list))), Placemark.is_vendor == True).all()
+		elif search is not None:
+			return self.placemarks.filter(Placemark.subtags.any(SubtagPlacemark.subtag.has(Subtag.name.ilike(search))), Placemark.is_vendor == True).all()
+		else:
+			return []
 		
 	def GetTags(self):
 		subtags = Subtag.query.filter(Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
@@ -46,6 +52,10 @@ class User(UserMixin, db.Model):
 	def GetActiveSubtags(self, tags_list):
 		return Subtag.query.filter(Subtag.tag_id.in_(tags_list), Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
 		
+	def GetSearchedSubtags(self, search):
+		search = f'%{search}%'
+		return Subtag.query.filter(Subtag.name.ilike(search), Subtag.placemarks.any(SubtagPlacemark.placemark.has(Placemark.user_id == self.id))).all()
+		
 	def GetAvatar(self, size):
 		digest = md5(self.email.lower().encode('utf-8')).hexdigest()
 		return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
@@ -58,7 +68,8 @@ class Placemark(db.Model):
 	name = db.Column(db.String(128), nullable=False)
 	description = db.Column(db.String(128), nullable=True)
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')	
+	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')
+	price_url = db.Column(db.String(), nullable=True)
 	subtags = db.relationship('SubtagPlacemark', back_populates='placemark', cascade='save-update,merge,delete,delete-orphan')
 	
 	def Serialize(self):
@@ -67,6 +78,7 @@ class Placemark(db.Model):
 			'coordinates':[self.longitude, self.latitude],
 			'name':self.name,
 			'description':self.description,
+			'price_url':self.price_url
 		}
 		if self.is_vendor:
 			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}

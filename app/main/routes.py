@@ -32,7 +32,10 @@ def ShowIndex():
 	add_form = AddPlacemarkForm()
 	edit_form = EditPlacemarkForm()
 	active_tag = request.args.getlist('active_tag', type=int)
-	return render_template('index.html', add_form = add_form, edit_form = edit_form, active_tag = active_tag)
+	search = request.args.get('search')
+	if search is not None and len(search) == 0:
+		search = None
+	return render_template('index.html', add_form = add_form, edit_form = edit_form, active_tag = active_tag, search=search)
 
 @bp.route('/remove')
 @login_required
@@ -64,6 +67,7 @@ def AddPlacemark():
 			if form.is_vendor.data:
 				p.is_vendor = True
 				p.description = form.description.data.strip()
+				p.price_url = form.price_url.data
 				MakeTagsHierarchy(p, form.tags.data)
 			else:
 				p.is_vendor = False
@@ -92,6 +96,7 @@ def EditPlacemark():
 					flash('Метка успешно удалена.')
 				else:
 					p.description = form.description.data.strip()
+					p.price_url = form.price_url.data
 					SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == p.id).delete(synchronize_session=False)
 					MakeTagsHierarchy(p, form.tags.data)
 				Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session=False)
