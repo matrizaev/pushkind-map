@@ -9,3 +9,4 @@ class Config(object):
 	ICU_EXTENSION_PATH = os.path.join(basedir, 'libsqliteicu.so')
 	SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
+	GOOGLE_DRIVE_ACCOUNT = 'google-drive-account.json'

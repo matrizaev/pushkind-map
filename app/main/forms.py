@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import Form, SubmitField, StringField, BooleanField, FloatField, TextAreaField, IntegerField, FieldList, FormField
-from wtforms.validators import DataRequired, ValidationError, Length
+from wtforms.validators import DataRequired, ValidationError, Length, Optional, URL
 from wtforms.fields.html5 import URLField
 
 
@@ -20,7 +20,7 @@ class AddPlacemarkForm(FlaskForm):
 	description = TextAreaField('Описание', validators = [Length(max = 128, message='Описание не должно быть длиннее 128 символов.')], id='addDescription')
 	tags = FieldList(FormField(AddTagForm))
 	is_vendor = BooleanField ('Поставщик', id='addIsVendor')
-	price_url = URLField('URL прайса', id='addPriceURL')
+	price_url = URLField('URL прайса', id='addPriceURL', validators=[Optional(), URL(message='Некорректный URL.')])
 	submit = SubmitField('Добавить', id='addSubmit')
 
 			
@@ -28,6 +28,6 @@ class EditPlacemarkForm(FlaskForm):
 	id = IntegerField('Идентификатор', validators = [DataRequired(message='Идентификатор  - обязательное поле.')], id = 'editId')
 	description = TextAreaField('Описание', validators = [Length(max = 128, message='Описание не должно быть длиннее 128 символов.')], id = 'editDescription')
 	name = StringField('Название', validators = [DataRequired(message='Название  - обязательное поле.'), Length(max = 128, message='Название не должно быть длиннее 128 символов.')], id='editName')
-	price_url = URLField('URL прайса', id='editPriceURL')
+	price_url = URLField('URL прайса', id='editPriceURL', validators=[Optional(), URL(message='Некорректный URL.')])
 	tags = FieldList(FormField(AddTagForm))
 	submit = SubmitField('Сохранить', id = 'editSubmit')

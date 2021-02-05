@@ -25,7 +25,7 @@
 	<div class="row">
 		<div class="col">
 			<form method="GET" action="{{ url_for('main.ShowIndex') }}">
-				<input type="search" name="search" placeholder="Поиск по материалам..." class="form-control" value="{{ search if search is not none }}">
+				<input type="search" name="search" placeholder="Поиск по материалам..." class="form-control" value="{{ search if search is not none }}" list="subtagsList">
 			</form>
 		</div>
 	</div>
@@ -84,7 +84,7 @@
 		</div>
 	{% endif %}
 	<div class="collapse"  id="collapsedForm">
-		<form method="POST" action="{{ url_for('main.AddPlacemark', active_tag = active_tag) }}">
+		<form method="POST" action="{{ url_for('main.AddPlacemark', active_tag = active_tag) }}" id="addPlacemarkForm">
 			{{ add_form.csrf_token(id='addCSRF') }}
 			<div class="form-row">
 				<div class="form-group col-md-6">
@@ -160,6 +160,7 @@
 				</div>
 				<div class="modal-footer">
 					{{ edit_form.submit(class_ = 'btn btn-primary') }}
+					<a class="btn btn-info" id="editSync" href="{{ url_for('main.SyncPlacemark', id='replace_me', active_tag = active_tag) }}"><img class="octicon" src="http://admin.pushkind.com/static/octicons/file-symlink-file.svg" alt="Синхронизация"></a>
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
 				</div>
 			</form>
@@ -172,14 +173,14 @@
 	<div id="addTagTemplate" data-index="0" class="tagsHierarchy">
 		<div class="form-row my-1">
 			<div class="col-10">
-				<input type="text" class="form-control" placeholder="Тег" name="tags-_-name" required list="tagsList">
+				<input type="text" class="form-control tag" placeholder="Тег" name="tags-_-name" required list="tagsList">
 			</div>
 			<div class="col-2 text-right">
 				<a class="btn btn-danger removeTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
 				<a class="btn btn-primary appendTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
 			</div>	
 		</div>
-		<div  class="tagsHierarchy">
+		<div class="tagsHierarchy">
 			<div class="form-row my-1" data-subIndex ="0">
 				<div class="col-1">
 					&nbsp;
@@ -252,7 +253,21 @@
 		$('input[type=search]').on('search', function () {
 			$(this).parent().submit();
 		});
-	
+		
+		$("#addPriceURL").change(function(){
+			if (!$(this).val()){
+				var content = $('#addTagTemplate').clone();
+				content.removeAttr('id');
+				content.find('input').each(function(){
+					var name = $(this).attr('name').replace('_', 0);
+					$(this).attr('name', name);
+				});
+				$('#collapsedTagsForm').children('.dynamic-tags').append(content);
+			} else {
+				$('#collapsedTagsForm').children('.dynamic-tags').empty();
+			}
+		});
+		
 		var dynamicTags = $('.dynamic-tags');
 		$('#collapsedTagsForm').hide();
 		$('#addIsVendor').prop('checked', false);
@@ -296,8 +311,10 @@
 			} else {
 				$('#collapsedTagsForm').hide();
 				$('#collapsedTagsForm').children('.dynamic-tags').empty();
+				$('#addPriceURL').val('');
 			}
 		});
+		
 		$('#resetMap').on('click', ResetMap);
 		$('#subTagSelect').on('change', ResetMap);
 		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
@@ -351,6 +368,9 @@
 				$('#editName').val(decodeEntities(placemark.template.name));
 				$('#editDescription').val(placemark.template.description);
 				$('#editPriceURL').val(placemark.template.price_url);
+				var syncBtn = $("#editSync");
+				var urlForSync = syncBtn.attr("href").replace('replace_me', placemark.template.id);
+				syncBtn.attr("href", urlForSync);
 			}
 		});
 	});
