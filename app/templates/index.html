@@ -254,7 +254,11 @@
 			$(this).parent().submit();
 		});
 		
-		$("#addPriceURL").change(function(){
+		$("#addPriceURL").focus(function(){
+			$('#collapsedTagsForm').children('.dynamic-tags').empty();
+		});
+		
+		$("#addPriceURL").focusout(function(){
 			if (!$(this).val()){
 				var content = $('#addTagTemplate').clone();
 				content.removeAttr('id');
@@ -263,8 +267,6 @@
 					$(this).attr('name', name);
 				});
 				$('#collapsedTagsForm').children('.dynamic-tags').append(content);
-			} else {
-				$('#collapsedTagsForm').children('.dynamic-tags').empty();
 			}
 		});
 		
