@@ -1,23 +1,32 @@
 {% extends "base.html" %}
-{% set tags_list = current_user.GetTags() %}
+
 {% block content %}
 
 
-<div class="container my-1 border bg-light">
+
+
+<div class="container my-1">
 	<div class="row">
 		<div class="col">
-			{% for tag in tags_list %}
-				{% if tag.id in active_tag %}
-					{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
-				{% else %}
-					{% set add_active_tags = active_tag + [tag.id] %}
-					<a href="{{ url_for('main.ShowIndex', active_tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
-				{% endif %}
-			{% endfor %}
+			<img src="http://map.pushkind.com/static/logo.png" alt="Логотип">	
 		</div>
 		<div class="col text-right">
 			{{ current_user.email }}(<a href="{{ url_for('auth.PerformLogout') }}">выйти</a>)
+		</div>
+	</div>
+</div>
+<div class="container my-1">
+	<div class="row">
+		<div class="col">
+			{% for tag in tags %}
+				{% if tag.id in active_tag %}
+					{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
+					<a href="{{ url_for('main.ShowIndex', tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+				{% else %}
+					{% set add_active_tags = active_tag + [tag.id] %}
+					<a href="{{ url_for('main.ShowIndex', tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+				{% endif %}
+			{% endfor %}
 		</div>
 	</div>
 </div>
@@ -30,7 +39,7 @@
 		</div>
 	</div>
 </div>
-<div class="my-1 border bg-light container">
+<div class="my-1 container">
 	{% if active_tag|length > 0 or search is not none %}
 		<div class="row my-1">
 			<div class="col-md-2">
@@ -38,19 +47,9 @@
 			</div>
 			<div class="col-md">
 				<select class="form-control" id="subTagSelect">
-					
-					
-					{% if active_tag|length > 0 %}
-						<option value="all">Все</option>
-						{% for subtag in current_user.GetActiveSubtags(active_tag) %}
-							<option value="{{ subtag.name }}">{{ subtag.name }}</option>
-						{% endfor %}
-					{% else %}
-						{% for subtag in current_user.GetSearchedSubtags(search) %}
-							<option value="{{ subtag.name }}">{{ subtag.name }}</option>
-						{% endfor %}
-					{% endif%}
-					
+					{% if search is none %}
+						<option value="all">Все</option>			
+					{% endif %}
 					{% for subtag in subtags %}
 						<option value="{{ subtag.name }}">{{ subtag.name }}</option>
 					{% endfor %}
@@ -73,10 +72,10 @@
 		</div>
 	{% else%}
 		<div class="row my-1">
-			<div class="col-md-10">
-				&nbsp;
+			<div class="col">
+				<small class="form-text text-muted">*Удалить конечную метку можно нажав на неё.</small>
 			</div>
-			<div class="col-md-2 text-right">
+			<div class="col text-right">
 				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
 					Добавить метку
 				</button>
@@ -109,7 +108,6 @@
 					{{ add_form.price_url.label }}
 					{{ add_form.price_url(class_ = 'form-control', placeholder='https://drive.google.com/drive') }}
 				</div>
-				<div class = "dynamic-tags"></div>
 			</div>
 			<div class="form-group">
 				<div class="form-check">
@@ -155,8 +153,6 @@
 						{{ edit_form.price_url.label }}
 						{{ edit_form.price_url(class_ = 'form-control', placeholder='https://drive.google.com/drive') }}
 					</div>
-					<h6>Цены (с доставкой и НДС):</h6>
-					<div id = "editPricesGroup" class="dynamic-tags"></div>
 				</div>
 				<div class="modal-footer">
 					{{ edit_form.submit(class_ = 'btn btn-primary') }}
@@ -170,37 +166,6 @@
 
 
 <div class="d-none" id="templates">
-	<div id="addTagTemplate" data-index="0" class="tagsHierarchy">
-		<div class="form-row my-1">
-			<div class="col-10">
-				<input type="text" class="form-control tag" placeholder="Тег" name="tags-_-name" required list="tagsList">
-			</div>
-			<div class="col-2 text-right">
-				<a class="btn btn-danger removeTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
-				<a class="btn btn-primary appendTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
-			</div>	
-		</div>
-		<div class="tagsHierarchy">
-			<div class="form-row my-1" data-subIndex ="0">
-				<div class="col-1">
-					&nbsp;
-				</div>
-				<div class="col-4">
-					<input type="text" class="form-control subtag" placeholder="Материал" name="tags-_-prices-0-name" required list="subtagsList">
-				</div>
-				<div class="col-3">
-					<input type="number" class="form-control price" step="any" placeholder="Цена" name="tags-_-prices-0-price" required>
-				</div>
-				<div class="col-2">
-					<input type="text" class="form-control units" placeholder="Единицы" name="tags-_-prices-0-units">
-				</div>
-				<div class="col-2">
-					<a class="btn btn-danger removeSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/dash.svg" alt="Удалить"></a>
-					<a class="btn btn-info appendSubTagButton"><img class="octicon" src="http://admin.pushkind.com/static/octicons/plus.svg" alt="Добавить"></a>
-				</div>	
-			</div>
-		</div>
-	</div>
 	<div id="placemarkBaloonTemplate">
 		<div></div>
 		<div>Цены (с доставкой и НДС):</div>
@@ -216,14 +181,14 @@
 
 
 <datalist id="tagsList" class="d-none">
-	{% for tag in tags_list %}
+	{% for tag in tags %}
 		<option value="{{tag.name}}">
 	{% endfor %}
 </datalist>
 
 <datalist id="subtagsList" class="d-none">
-	{% for tag in tags_list %}
-		{% for subtag in tags_list[tag] %}
+	{% for tag in tags %}
+		{% for subtag in tags[tag] %}
 			<option value="{{subtag.name.split(' / ')[1]}}">
 		{% endfor %}
 	{% endfor %}
@@ -249,83 +214,37 @@
 	$(function() {
 	
 	
-	
+		//Subtags search
 		$('input[type=search]').on('search', function () {
 			$(this).parent().submit();
 		});
-		
-		$("#addPriceURL").focus(function(){
-			$('#collapsedTagsForm').children('.dynamic-tags').empty();
-		});
-		
-		$("#addPriceURL").focusout(function(){
-			if (!$(this).val()){
-				var content = $('#addTagTemplate').clone();
-				content.removeAttr('id');
-				content.find('input').each(function(){
-					var name = $(this).attr('name').replace('_', 0);
-					$(this).attr('name', name);
-				});
-				$('#collapsedTagsForm').children('.dynamic-tags').append(content);
-			}
-		});
-		
-		var dynamicTags = $('.dynamic-tags');
+
 		$('#collapsedTagsForm').hide();
 		$('#addIsVendor').prop('checked', false);
-		dynamicTags.on('click', '.appendTagButton', AddTag);
-		dynamicTags.on('click', '.removeSubTagButton', function(event){
-			var target = $(event.target).closest('.form-row');
-			console.log(target.siblings());
-			if (target.siblings().length > 0)
-				target.remove();
-		});
-		dynamicTags.on('click', '.removeTagButton', function(event){
-			var target = $(event.target);
-			var parent = target.closest('.tagsHierarchy');
-			if (parent.parent().children().length > 1)
-				parent.remove();
-		});
-		dynamicTags.on('click', '.appendSubTagButton', function(event){
-			var target = $(event.target);
-			var parent = target.closest('.tagsHierarchy');
-			var content = parent.find('.form-row').last();
-			var lastIndex = Number(content.attr('data-subIndex'));
-			content = content.clone();
-			content.attr('data-subIndex', lastIndex + 1);
-			content.find('input').each(function(){
-				var name = $(this).attr('name').replace('-prices-'+lastIndex+'-', '-prices-'+(lastIndex + 1)+'-');
-				$(this).attr('name', name);
-				$(this).removeAttr('readonly');
-			});			
-			parent.append(content);
-		});
+
+
 		$('#addIsVendor').on('click', function() {
 			if($(this).is(':checked')){
 				$('#collapsedTagsForm').show();
-				var content = $('#addTagTemplate').clone();
-				content.removeAttr('id');
-				content.find('input').each(function(){
-					var name = $(this).attr('name').replace('_', 0);
-					$(this).attr('name', name);
-				});
-				$('#collapsedTagsForm').children('.dynamic-tags').append(content);
+				$('#addPriceURL').prop('required', true);
 			} else {
 				$('#collapsedTagsForm').hide();
-				$('#collapsedTagsForm').children('.dynamic-tags').empty();
 				$('#addPriceURL').val('');
+				$('#addPriceURL').prop('required', false);
 			}
 		});
-		
+
+
 		$('#resetMap').on('click', ResetMap);
 		$('#subTagSelect').on('change', ResetMap);
 		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
 			index = e.relatedTarget.getAttribute('data-placemarkIndex');
-			var editPrices = $('#editPricesGroup');
-			editPrices.empty();
+			/*var editPrices = $('#editPricesGroup');
+			editPrices.empty();*/
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
 				placemark = vendorsList[index];
+				/*
 				var template = $('#addTagTemplate');
 				var i = 0;
 				for (var tag in placemark.template['tags'])
@@ -365,7 +284,7 @@
 					}
 					i++;
 					editPrices.append(content);
-				}
+				}*/
 				$('#editId').val(placemark.template.id);
 				$('#editName').val(decodeEntities(placemark.template.name));
 				$('#editDescription').val(placemark.template.description);
@@ -450,12 +369,14 @@
 		elem = content.find('a:last');
 		elem.attr('data-placemarkType', 'vendor');
 		elem.attr('data-placemarkIndex', index);
+		/*
 		var elem = content.find('div:last');
 		for (var tag in placemark['tags'])
 		{
 			for (var subtag in placemark['tags'][tag])
 				elem.append(subtag + ': <b>'+ placemark['tags'][tag][subtag][0]+'</b> '+ placemark['tags'][tag][subtag][1] + '<br>');
 		}
+		*/
 		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html()});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
@@ -475,9 +396,9 @@
 	
 	function OnPlacemarkClick(e)
 	{
+		var target = e.get('target');
 		if (vendorsList['length'] > 0)
 		{
-			var target = e.get('target');
 			endpointsList.forEach(function(endpoint){
 				if (endpoint != target) 
 					endpoint.options.set("visible", false);
@@ -501,8 +422,11 @@
 					route.events.add('update', FilterRoutesByDistance);
 					routesList.push(route);
 				}
-			});
-			
+			});	
+		}
+		else {
+			if (confirm("Удалить?"))
+				window.location.href = "{{url_for('main.RemovePlacemark', id = 'replace_me')}}".replace("replace_me", target.template.id);
 		}
 	}
 	
@@ -594,20 +518,6 @@
 		}
 		if (routesList.length > 0)
 			routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
-	}
-
-	function AddTag(event){
-		var content = $("#addTagTemplate").clone();
-		var parent = $(event.target).closest('.dynamic-tags');
-		var lastTag = parent.children('.tagsHierarchy:last');
-		var tagsIndex = Number(lastTag.attr('data-index')) + 1;
-		content.attr('data-index', tagsIndex);
-		content.find('input').each(function(){
-			var name = $(this).attr('name').replace('_', tagsIndex);
-			$(this).attr('name', name);
-		});
-		content.removeAttr('id');
-		parent.append(content);
 	}
 	
 	var decodeEntities = (function () {

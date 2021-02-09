@@ -11,36 +11,26 @@ from gspread.exceptions import NoValidUrlKeyFound, APIError
 
 import pandas as pd
 
-def MakeTagsHierarchy(placemark, tags_data):
-	for tag in tags_data:
-		tag_name = tag['name'].strip().lower().replace('/', '_')
-		t = Tag.query.filter(Tag.name == tag_name).first()
-		if not t:
-			t = Tag(name = tag_name)
-			db.session.add(t)
-		for subtag in tag['prices']:
-			st_name = '{} / {}'.format(tag_name, subtag['name'].strip().lower().replace('/', '_'))
-			st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == t).first()
-			if not st:
-				st = Subtag(name = st_name)
-				db.session.add(st)
-				t.subtags.append(st)
-			subtag_placemark = SubtagPlacemark(price = subtag['price'], units = subtag['units'])
-			subtag_placemark.placemark = placemark
-			subtag_placemark.subtag = st
-			db.session.add(subtag_placemark)
-
 @bp.route('/')
 @bp.route('/index/')
 @login_required
 def ShowIndex():
 	add_form = AddPlacemarkForm()
 	edit_form = EditPlacemarkForm()
-	active_tag = request.args.getlist('active_tag', type=int)
-	search = request.args.get('search')
-	if search is not None and len(search) == 0:
+	if 'search' in request.args:
+		search = request.args.get('search')
+		subtags = current_user.GetSearchedSubtags(search)
+		active_tag = [st.tag_id for st in subtags]
+	else:
+		active_tag = request.args.getlist('tag', type=int)
 		search = None
-	return render_template('index.html', add_form = add_form, edit_form = edit_form, active_tag = active_tag, search=search)
+		subtags = current_user.GetActiveSubtags(active_tag)
+		
+	tags = current_user.GetTags()
+		
+	return render_template('index.html', add_form = add_form, edit_form = edit_form,
+							active_tag = active_tag, search=search,
+							tags = tags, subtags = subtags)
 	
 def RemovePlacemarkSubtags(placemark):
 	SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == placemark.id).delete(synchronize_session='fetch')
@@ -97,9 +87,9 @@ def SyncPlacemark():
 	else:
 		flash('Метка не может быть синхронизирована.')
 	active_tag = request.args.getlist('active_tag', type=int)	
-	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
+	return redirect(url_for('main.ShowIndex', tag=active_tag))
 
-@bp.route('/remove')
+@bp.route('/remove/')
 @login_required
 def RemovePlacemark():
 	id = request.args.get('id', type=int)
@@ -112,9 +102,9 @@ def RemovePlacemark():
 	else:
 		flash('Метка не найдена.')
 	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
+	return redirect(url_for('main.ShowIndex', tag=active_tag))
 	
-@bp.route('/add', methods=['POST'])
+@bp.route('/add/', methods=['POST'])
 @login_required
 def AddPlacemark():
 	form = AddPlacemarkForm(request.form)
@@ -125,15 +115,9 @@ def AddPlacemark():
 			if form.is_vendor.data:
 				placemark.is_vendor = True
 				placemark.description = form.description.data.strip()
-				if form.price_url.data is not None and len(form.price_url.data) > 0:
-					placemark.price_url = form.price_url.data
-					if SyncPlacemarkWithPrice(placemark) is not True:
-						raise APIError
-				else:
-					placemark.price_url = None
-					if len(form.tags.data) == 0:
-						raise TypeError
-					MakeTagsHierarchy(placemark, form.tags.data)
+				placemark.price_url = form.price_url.data
+				if SyncPlacemarkWithPrice(placemark) is not True:
+					raise APIError
 			else:
 				placemark.is_vendor = False
 			current_user.placemarks.append(placemark)
@@ -143,12 +127,12 @@ def AddPlacemark():
 			db.session.rollback()
 			flash('Ошибка при добавлении метки.')
 	else:
-		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.tags.errors + form.description.errors + form.is_vendor.errors:
+		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.price_url.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
 	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
+	return redirect(url_for('main.ShowIndex', tag=active_tag))
 	
-@bp.route('/edit', methods=['POST'])
+@bp.route('/edit/', methods=['POST'])
 @login_required
 def EditPlacemark():
 	form = EditPlacemarkForm(request.form)
@@ -157,21 +141,11 @@ def EditPlacemark():
 		if placemark is not None:
 			try:
 				placemark.name = escape(form.name.data.strip())
-				if (len(form.tags.data) == 0) and form.price_url.data is None:
-					db.session.delete(placemark)
-					flash('Метка успешно удалена.')
-				else:
-					placemark.description = form.description.data.strip()
-					RemovePlacemarkSubtags(placemark)
-					if form.price_url.data is not None and len(form.price_url.data) > 0:
-						placemark.price_url = form.price_url.data
-						if SyncPlacemarkWithPrice(placemark) is not True:
-							raise APIError
-					else:
-						placemark.price_url = None
-						if len(form.tags.data) == 0:
-							raise TypeError
-						MakeTagsHierarchy(placemark, form.tags.data)
+				placemark.description = form.description.data.strip()
+				RemovePlacemarkSubtags(placemark)
+				placemark.price_url = form.price_url.data
+				if SyncPlacemarkWithPrice(placemark) is not True:
+					raise APIError
 				db.session.commit()
 				flash('Метка успешно изменена.')
 			except:
@@ -180,7 +154,7 @@ def EditPlacemark():
 		else:
 			flash('Метка не найдена.')
 	else:
-		for error in form.id.errors + form.tags.errors + form.description.errors + form.name.errors:
+		for error in form.id.errors + form.price_url.errors + form.description.errors + form.name.errors:
 			flash(error)
 	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', active_tag=active_tag))
+	return redirect(url_for('main.ShowIndex', tag=active_tag))
