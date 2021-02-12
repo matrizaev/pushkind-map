@@ -16,10 +16,7 @@ class AddPlacemarkForm(FlaskForm):
 	def validate_price_url(self, field):
 		if self.is_vendor.data is True and len(field.data) == 0:
 			raise ValidationError('URL прайса - обязательное поле.')
-			
-class EditPlacemarkForm(FlaskForm):
-	id = IntegerField('Идентификатор', validators = [DataRequired(message='Идентификатор  - обязательное поле.')], id = 'editId')
-	description = TextAreaField('Описание', validators = [Length(max = 128, message='Описание не должно быть длиннее 128 символов.')], id = 'editDescription')
-	name = StringField('Название', validators = [DataRequired(message='Название  - обязательное поле.'), Length(max = 128, message='Название не должно быть длиннее 128 символов.')], id='editName')
-	price_url = URLField('URL прайса', id='editPriceURL', validators=[DataRequired(message='URL прайса  - обязательное поле.'),URL(message='Некорректный URL.')])
-	submit = SubmitField('Сохранить', id = 'editSubmit')
+
+class SyncPlacemarksForm(FlaskForm):
+	url = URLField('URL меток', id='syncPlacemarksURL', validators=[DataRequired(message='URL меток  - обязательное поле.'),URL(message='Некорректный URL.')])
+	submit = SubmitField('Синхронизация', id='syncSubmit')

@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+	.vendorShortPrice{color:rgb(192,0,0)}
+</style>
+{% endblock %}
+
 {% block content %}
-
-
-
 
 <div class="container my-1">
 	<div class="row">
@@ -19,12 +22,12 @@
 	<div class="row">
 		<div class="col">
 			{% for tag in tags %}
-				{% if tag.id in active_tag %}
-					{% set rem_active_tags = active_tag |reject('equalto', tag.id)| list %}
-					<a href="{{ url_for('main.ShowIndex', tag = rem_active_tags) }}" class="badge badge-success tag font-weight-bold">{{ tag.name }}</a>
+				{% if tag.id in active_tags %}
+					{% set rem_active_tags = active_tags |reject('equalto', tag.id)| list %}
+					<a href="{{ url_for('main.ShowIndex', tag = rem_active_tags) }}" class="badge badge-primary tag font-weight-bold">{{ tag.name }}</a>
 				{% else %}
-					{% set add_active_tags = active_tag + [tag.id] %}
-					<a href="{{ url_for('main.ShowIndex', tag = add_active_tags) }}" class="badge badge-primary tag">{{ tag.name }}</a>
+					{% set add_active_tags = active_tags + [tag.id] %}
+					<a href="{{ url_for('main.ShowIndex', tag = add_active_tags) }}" class="badge badge-light border border-dark tag">{{ tag.name }}</a>
 				{% endif %}
 			{% endfor %}
 		</div>
@@ -40,7 +43,7 @@
 	</div>
 </div>
 <div class="my-1 container">
-	{% if active_tag|length > 0 or search is not none %}
+	{% if active_tags|length > 0 or search is not none %}
 		<div class="row my-1">
 			<div class="col-md-2">
 				Материал:
@@ -50,7 +53,7 @@
 					{% if search is none %}
 						<option value="all">Все</option>			
 					{% endif %}
-					{% for subtag in subtags %}
+					{% for subtag in active_subtags %}
 						<option value="{{ subtag.name }}">{{ subtag.name }}</option>
 					{% endfor %}
 				</select>
@@ -65,8 +68,8 @@
 				<input type="range" class="form-control-range" id="distanceRange" min="10" max="10000" value="500" onchange="FilterRoutesByDistance()">
 			</div>
 			<div class="col-md-2 text-right">
-				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
-					Добавить метку
+				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedSyncForm" aria-expanded="false" aria-controls="collapsedSyncForm">
+					Синхронизация
 				</button>
 			</div>
 		</div>
@@ -76,46 +79,24 @@
 				<small class="form-text text-muted">*Удалить конечную метку можно нажав на неё.</small>
 			</div>
 			<div class="col text-right">
-				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedForm" aria-expanded="false" aria-controls="collapsedForm">
-					Добавить метку
+				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedSyncForm" aria-expanded="false" aria-controls="collapsedSyncForm">
+					Синхронизация
 				</button>
 			</div>
 		</div>
 	{% endif %}
-	<div class="collapse"  id="collapsedForm">
-		<form method="POST" action="{{ url_for('main.AddPlacemark', active_tag = active_tag) }}" id="addPlacemarkForm">
-			{{ add_form.csrf_token(id='addCSRF') }}
-			<div class="form-row">
-				<div class="form-group col-md-6">
-				  {{ add_form.longitude.label }}
-				  {{ add_form.longitude(class_ = 'form-control') }}
+	<div class="collapse" id="collapsedSyncForm">
+		<form class="my-2" method="POST" action="{{ url_for('main.SyncPlacemarks', tag = active_tags) }}">
+			<h6>Синхронизровать метки с Google-таблицей</h6>
+			{{ sync_form.csrf_token(id='syncCSRF') }}
+			<div class="row">
+				<div class="col">
+					{{ sync_form.url(class_ = 'form-control mb-1', placeholder='https://drive.google.com/drive') }}
 				</div>
-				<div class="form-group col-md-6">
-				  {{ add_form.latitude.label }}
-				  {{ add_form.latitude(class_ = 'form-control') }}
-				</div>
-			</div>
-			<div class="form-group">
-				{{ add_form.name.label }}
-				{{ add_form.name(class_ = 'form-control', autofocus = '') }}
-			</div>
-			<div id="collapsedTagsForm">
-				<div class="form-group">
-					{{ add_form.description.label }}
-					{{ add_form.description(class_ = 'form-control') }}
-				</div>
-				<div class="form-group">
-					{{ add_form.price_url.label }}
-					{{ add_form.price_url(class_ = 'form-control', placeholder='https://drive.google.com/drive') }}
+				<div class="col-lg-2">
+					{{ sync_form.submit(class_ = 'btn btn-primary') }}
 				</div>
 			</div>
-			<div class="form-group">
-				<div class="form-check">
-					{{ add_form.is_vendor(class_ = 'form-check-input') }}
-					{{ add_form.is_vendor.label(class_ = 'form-check-label') }}
-				</div>
-			</div>
-			{{ add_form.submit(class_ = 'btn btn-primary mb-1') }}
 		</form>
 	</div>
 </div>
@@ -128,53 +109,131 @@
 	</div>
 </div>
 
-<div class="modal fade" id="editPlacemarkModal" tabindex="-1" role="dialog" aria-labelledby="editPlacemarkLabel" aria-hidden="true">
+<div class="modal fade" id="vendorCardModal" tabindex="-1" role="dialog" aria-labelledby="vendorCardModalLabel" aria-hidden="true">
 	<div class="modal-dialog" role="document">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title" id="editPlacemarkLabel">Редактирование метки</h5>
+				<h5 class="modal-title" id="vendorCardModalLabel">Карточка поставщика</h5>
 				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
-			<form method="POST" action="{{ url_for('main.EditPlacemark', active_tag = active_tag) }}">
-				<div class="modal-body">
-					{{ edit_form.csrf_token(id='editCSRF') }}
-					{{ edit_form.id(class_ = 'd-none', hidden = '') }}
-					<div class="form-group">
-						{{ edit_form.name.label }}
-						{{ edit_form.name(class_ = 'form-control') }}
+			<div class="modal-body">
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Название
 					</div>
-					<div class="form-group">
-						{{ edit_form.description.label }}
-						{{ edit_form.description(class_ = 'form-control') }}
-					</div>
-					<div class="form-group">
-						{{ edit_form.price_url.label }}
-						{{ edit_form.price_url(class_ = 'form-control', placeholder='https://drive.google.com/drive') }}
+					<div class="col" id="vendorCardName">
 					</div>
 				</div>
-				<div class="modal-footer">
-					{{ edit_form.submit(class_ = 'btn btn-primary') }}
-					<a class="btn btn-info" id="editSync" href="{{ url_for('main.SyncPlacemark', id='replace_me', active_tag = active_tag) }}"><img class="octicon" src="http://admin.pushkind.com/static/octicons/file-symlink-file.svg" alt="Синхронизация"></a>
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Полное наименование
+					</div>
+					<div class="col" id="vendorCardFullName">
+					</div>
 				</div>
-			</form>
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Адрес
+					</div>
+					<div class="col" id="vendorCardAddress">
+					</div>
+				</div>
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Контактное лицо
+					</div>
+					<div class="col" id="vendorCardContact">
+					</div>
+				</div>
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Телефон
+					</div>
+					<div class="col" id="vendorCardPhone">
+					</div>
+				</div>
+				<div class="row border-bottom">
+					<div class="col font-weight-bold">
+						Электронная почта
+					</div>
+					<div class="col">
+						<a id="vendorCardEmail">
+							
+						</a>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col">
+						<a id="vendorCardWebsite">
+							Вебсайт
+						</a>
+					</div>
+					<div class="col">
+						<a id="vendorCardPresentation">
+							Презентация
+						</a>
+					</div>
+					<div class="col">
+						<a id="vendorCardPrice">
+							Прайс-лист
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade " id="showFullPriceModal" tabindex="-1" role="dialog" aria-labelledby="showFullPriceModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="showFullPriceModalLabel">Прайс-лист</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<table class="table">
+					<thead>
+						<tr>
+							<th scope="col">#</th>
+							<th scope="col">Материал</th>
+							<th scope="col">Цена</th>
+							<th scope="col">Единицы</th>
+						</tr>
+					</thead>
+				<tbody id="vendorFullPrice">
+					
+				</tbody>
+				</table>
+			</div>
+			<div class="modal-footer">
+				<a class="btn btn-info" id="priceSyncButton" href="">Синхронизация</a>
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+			</div>
 		</div>
 	</div>
 </div>
 
 
 <div class="d-none" id="templates">
-	<div id="placemarkBaloonTemplate">
-		<div></div>
-		<div>Цены (с доставкой и НДС):</div>
-		<div></div>
-		<a href="{{ url_for('main.RemovePlacemark', active_tag = active_tag, id = 'replace_me') }}" class="badge badge-danger" onclick="return confirm('Удалить?')">
+	<div id="vendorBaloonTemplate">
+		<p class="vendorDescription"></p>
+		<span>Цены (с доставкой и НДС):</span>
+		<p class="vendorShortPrice"></p>
+		<p>
+			<a href="#" data-toggle="modal" data-target="#vendorCardModal" class="vendorModalButton" >О компании</a>
+			<a href="#" data-toggle="modal" data-target="#showFullPriceModal" class="vendorModalButton">Прайс-лист</a>
+		</p>
+		<a href="{{ url_for('main.RemovePlacemark', tag = active_tags, id = 'replace_me') }}" class="badge badge-danger vendorRemove" onclick="return confirm('Удалить?')">
 			<img class="octicon" src="http://admin.pushkind.com/static/octicons/x.svg" alt="Удалить">
-		</a>&nbsp;
-		<a class="badge badge-primary" data-toggle="modal" data-target="#editPlacemarkModal">
-			<img class="octicon" src="http://admin.pushkind.com/static/octicons/pencil.svg" alt="Редактировать">
 		</a>
 	</div>
 </div>
@@ -219,79 +278,43 @@
 			$(this).parent().submit();
 		});
 
-		$('#collapsedTagsForm').hide();
-		$('#addIsVendor').prop('checked', false);
-
-
-		$('#addIsVendor').on('click', function() {
-			if($(this).is(':checked')){
-				$('#collapsedTagsForm').show();
-				$('#addPriceURL').prop('required', true);
-			} else {
-				$('#collapsedTagsForm').hide();
-				$('#addPriceURL').val('');
-				$('#addPriceURL').prop('required', false);
-			}
-		});
-
-
 		$('#resetMap').on('click', ResetMap);
 		$('#subTagSelect').on('change', ResetMap);
-		$('#editPlacemarkModal').on('shown.bs.modal', function (e) {
-			index = e.relatedTarget.getAttribute('data-placemarkIndex');
-			/*var editPrices = $('#editPricesGroup');
-			editPrices.empty();*/
+		
+		$('#showFullPriceModal').on('shown.bs.modal', function (e) {
+			var index = e.relatedTarget.getAttribute('data-placemarkIndex');
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
-				placemark = vendorsList[index];
-				/*
-				var template = $('#addTagTemplate');
-				var i = 0;
-				for (var tag in placemark.template['tags'])
-				{
-					var content = template.clone();
-					content.removeAttr('id');
-					var input = content.find('input:first');
-					input.val(tag);
-					input.attr('readonly', true);
-					var name = input.attr('name').replace('_', i);
-					input.attr('name', name);
-					subContent = content.find('.tagsHierarchy>.form-row');
-					var lastIndex = Number(subContent.attr('data-subIndex'));
-					subContent.attr('data-subIndex', lastIndex + 1);
-					for (var subtag in placemark.template['tags'][tag])
-					{
-						var input = subContent.find('input.subtag');
-						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-name', '-prices-'+(lastIndex + 1)+'-name');
-						input.attr('name', name);
-						input.attr('readonly', true);
-						input.val(subtag.split(' / ')[1]);
-						var input = subContent.find('input.price');
-						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-price', '-prices-'+(lastIndex + 1)+'-price');
-						input.attr('name', name);
-						input.val(placemark.template['tags'][tag][subtag][0]);
-						var input = subContent.find('input.units');
-						var name = input.attr('name').replace('_', i).replace('-prices-'+lastIndex+'-units', '-prices-'+(lastIndex + 1)+'-units');
-						input.attr('name', name);
-						input.val(placemark.template['tags'][tag][subtag][1]);
-						if (lastIndex < Object.keys(placemark.template['tags'][tag]).length - 1)
-						{
-							subContent = subContent.clone();
-							content.append(subContent);
-							lastIndex++
-							subContent.attr('data-subIndex', lastIndex + 1);
-						}
-					}
-					i++;
-					editPrices.append(content);
-				}*/
-				$('#editId').val(placemark.template.id);
-				$('#editName').val(decodeEntities(placemark.template.name));
-				$('#editDescription').val(placemark.template.description);
-				$('#editPriceURL').val(placemark.template.price_url);
-				var syncBtn = $("#editSync");
-				var urlForSync = syncBtn.attr("href").replace('replace_me', placemark.template.id);
+				var placemark = vendorsList[index];				
+				var syncBtn = $("#priceSyncButton");
+				var urlForSync = "{{ url_for('main.SyncPrice', id='replace_me') }}".replace('replace_me', placemark.template.id);
 				syncBtn.attr("href", urlForSync);
+				var vendorFullPrice = $("#vendorFullPrice");
+				vendorFullPrice.empty();
+				var index = 0;
+				for (subtag in placemark.template['prices']){
+					var row = "<tr><td>"+index+"</td><td>"+subtag+"</td><td>"+placemark.template['prices'][subtag][0]+"</td><td>"+placemark.template['prices'][subtag][1]+"</td></tr>";
+					vendorFullPrice.append(row);
+					index += 1;
+				}
+			}
+		});	
+		
+		$('#vendorCardModal').on('shown.bs.modal', function (e) {
+			var index = e.relatedTarget.getAttribute('data-placemarkIndex');
+			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
+			{
+				var placemark = vendorsList[index];
+				$("#vendorCardName").text(placemark.template['name']);
+				$("#vendorCardFullName").text(placemark.template['full_name']);
+				$("#vendorCardAddress").text(placemark.template['address']);
+				$("#vendorCardContact").text(placemark.template['contact']);
+				$("#vendorCardPhone").text(placemark.template['phone']);
+				$("#vendorCardEmail").attr('href', placemark.template['email']);
+				$("#vendorCardEmail").text(placemark.template['email']);
+				$("#vendorCardWebsite").attr('href', placemark.template['website']);
+				$("#vendorCardPresentation").attr('href', placemark.template['presentation']);
+				$("#vendorCardPrice").attr('href', placemark.template['price_url']);
 			}
 		});
 	});
@@ -316,7 +339,7 @@
 				vendor.options.set('preset', 'islands#grayStretchyIcon');
 				vendor.active = false;
 			}
-			vendor.properties.set('iconContent', '');
+			vendor.properties.set('iconContent', vendor.template.id);
 		});
 	}
 	
@@ -327,20 +350,14 @@
 			{% endfor %}
 		];
 		var vendorsTemplateList = [
-			{% for placemark in current_user.VendorsPlacemarks(active_tag, search) %}
+			{% for placemark in current_user.VendorsPlacemarks(active_tags, search) %}
 				{{ placemark|safe }},
 			{% endfor %}
 		];
-   
+
 		myMap = new ymaps.Map("map", {
 			center: [56.84, 60.60],
 			zoom: 4
-		});
-		
-		myMap.events.add('click', function(e){
-			var coords = e.get('coords');
-			$('#addLongitude').val(coords[0]);
-			$('#addLatitude').val(coords[1]);
 		});
 		
 		vendorsTemplateList.forEach(AddVendorObject);
@@ -361,26 +378,32 @@
 	
 	function AddVendorObject(placemark, index)
 	{
-		var content = $('#placemarkBaloonTemplate').clone();
-		content.find('div:first').text(placemark.description);
-		var elem = content.find('a:first');
+		var content = $('#vendorBaloonTemplate').clone();
+		content.find('p.vendorDescription').text(placemark.description);
+		var elem = content.find('a.vendorRemove');
 		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);
 		elem.attr('href', urlForRemove);
-		elem = content.find('a:last');
+		
+		elem = content.find('a.vendorModalButton');
 		elem.attr('data-placemarkType', 'vendor');
 		elem.attr('data-placemarkIndex', index);
-		/*
-		var elem = content.find('div:last');
-		for (var tag in placemark['tags'])
-		{
-			for (var subtag in placemark['tags'][tag])
-				elem.append(subtag + ': <b>'+ placemark['tags'][tag][subtag][0]+'</b> '+ placemark['tags'][tag][subtag][1] + '<br>');
-		}
-		*/
-		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html()});
+		
+		var elem = content.find('p.vendorShortPrice');
+		
+		[
+			{% for subtag in active_subtags %}
+				"{{ subtag.name }}",
+			{% endfor %}
+		].forEach(function(subtag){
+			if (subtag in placemark['prices'])
+				elem.append(subtag + ': <b>'+ placemark['prices'][subtag][0]+'</b> '+ placemark['prices'][subtag][1] + '<br>');
+		});
+		
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html(), iconContent:placemark.id});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
+		
 		var currentSubtag = $('#subTagSelect').val();
 		if (currentSubtag == 'all' || currentSubtag in placemark['prices'])
 		{
@@ -408,6 +431,7 @@
 			});
 			routesList = [];
 			
+			myMap.setCenter(target.geometry.getCoordinates(),6);
 			vendorsList.forEach(function(vendor){
 				if (vendor.active)
 				{
@@ -521,26 +545,26 @@
 	}
 	
 	var decodeEntities = (function () {
-        var doc = document.implementation.createHTMLDocument("");
-        var element = doc.createElement('div');
-        function getText(str) {
-            element.innerHTML = str;
-            str = element.textContent;
-            element.textContent = '';
-            return str;
-        }
-        function decodeHTMLEntities(str) {
-            if (str && typeof str === 'string') {
-                var x = getText(str);
-                while (str !== x) {
-                    str = x;
-                    x = getText(x);
-                }
-                return x;
-            }
-        }
-        return decodeHTMLEntities;
-    })();
+		var doc = document.implementation.createHTMLDocument("");
+		var element = doc.createElement('div');
+		function getText(str) {
+			element.innerHTML = str;
+			str = element.textContent;
+			element.textContent = '';
+			return str;
+		}
+		function decodeHTMLEntities(str) {
+			if (str && typeof str === 'string') {
+				var x = getText(str);
+				while (str !== x) {
+					str = x;
+					x = getText(x);
+				}
+				return x;
+			}
+		}
+		return decodeHTMLEntities;
+	})();
 	
 </script>
 {% endblock %}

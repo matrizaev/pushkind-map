@@ -3,7 +3,7 @@ from app.models import Placemark, Tag, Subtag, SubtagPlacemark
 from flask import redirect, flash, render_template, request, url_for, escape, jsonify
 from flask_login import current_user, login_required
 from app.main import bp
-from app.main.forms import AddPlacemarkForm, EditPlacemarkForm
+from app.main.forms import AddPlacemarkForm, SyncPlacemarksForm
 from flask import current_app
 
 import gspread
@@ -11,31 +11,41 @@ from gspread.exceptions import NoValidUrlKeyFound, APIError
 
 import pandas as pd
 
+from sqlalchemy.exc import StatementError
+
 @bp.route('/')
 @bp.route('/index/')
 @login_required
 def ShowIndex():
 	add_form = AddPlacemarkForm()
-	edit_form = EditPlacemarkForm()
+	sync_form = SyncPlacemarksForm()
 	if 'search' in request.args:
 		search = request.args.get('search')
-		subtags = current_user.GetSearchedSubtags(search)
-		active_tag = [st.tag_id for st in subtags]
+		active_subtags = current_user.GetSearchedSubtags(search)
+		active_tags = [st.tag_id for st in active_subtags]
 	else:
-		active_tag = request.args.getlist('tag', type=int)
+		active_tags = request.args.getlist('tag', type=int)
 		search = None
-		subtags = current_user.GetActiveSubtags(active_tag)
+		active_subtags = current_user.GetActiveSubtags(active_tags)
 		
 	tags = current_user.GetTags()
 		
-	return render_template('index.html', add_form = add_form, edit_form = edit_form,
-							active_tag = active_tag, search=search,
-							tags = tags, subtags = subtags)
+	return render_template('index.html', add_form = add_form, sync_form = sync_form,
+							active_tags = active_tags, search=search,
+							tags = tags, active_subtags = active_subtags)
 	
 def RemovePlacemarkSubtags(placemark):
 	SubtagPlacemark.query.filter(SubtagPlacemark.placemark_id == placemark.id).delete(synchronize_session='fetch')
 	Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session='fetch')
-	Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session='fetch')	
+	Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session='fetch')
+
+def GoogleTable2DataFrame(url):
+	gc = gspread.service_account(filename=current_app.config['GOOGLE_DRIVE_ACCOUNT'])
+	spreadsheet = gc.open_by_url(url)
+	worksheet = spreadsheet.get_worksheet(0)
+	data = worksheet.get_all_records()
+	df = pd.DataFrame(data)
+	return df
 
 def SyncPlacemarkWithPrice(placemark):
 	def SyncSubtags(placemark, tag, template):
@@ -50,11 +60,7 @@ def SyncPlacemarkWithPrice(placemark):
 		subtag_placemark.subtag = st
 		db.session.add(subtag_placemark)
 	try:
-		gc = gspread.service_account(filename=current_app.config['GOOGLE_DRIVE_ACCOUNT'])
-		spreadsheet = gc.open_by_url(placemark.price_url)
-		worksheet = spreadsheet.get_worksheet(0)
-		data = worksheet.get_all_records()
-		df = pd.DataFrame(data)
+		df = GoogleTable2DataFrame(placemark.price_url)
 		if not all([key in df.columns for key in ['tag', 'subtag', 'price', 'units']]) or len(df.index) == 0:
 			raise TypeError
 		df = df.groupby(by = ['tag', 'subtag'], as_index = False, sort = False).agg({'price':'first', 'units':'first'})
@@ -71,9 +77,9 @@ def SyncPlacemarkWithPrice(placemark):
 		return False
 
 	
-@bp.route('/sync/')
+@bp.route('/sync/price/')
 @login_required
-def SyncPlacemark():
+def SyncPrice():
 	id = request.args.get('id', type=int)
 	placemark = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == id, Placemark.is_vendor == True, Placemark.price_url != None).first()
 	if placemark is not None:
@@ -86,8 +92,65 @@ def SyncPlacemark():
 			flash('Не удалось синхронизировать метку с прайс-листом.')
 	else:
 		flash('Метка не может быть синхронизирована.')
-	active_tag = request.args.getlist('active_tag', type=int)	
-	return redirect(url_for('main.ShowIndex', tag=active_tag))
+	active_tags = request.args.getlist('tag', type=int)	
+	return redirect(url_for('main.ShowIndex', tag=active_tags))
+	
+
+@bp.route('/sync/placemarks/', methods=['POST'])
+@login_required
+def SyncPlacemarks():
+	form = SyncPlacemarksForm()
+	if form.validate_on_submit():
+		try:
+			df = GoogleTable2DataFrame(form.url.data)
+			if not all([key in df.columns for key in ['type', 'name', 'organization name', 'address', 'coordinates', 'contact', 'phone', 'email', 'presentation', 'website', 'price']]) or len(df.index) == 0:
+				raise TypeError
+				
+			df = df.astype(str)
+				
+			endpoints = df[df['type'] == 'объект']
+			vendors = df[df['type'] == 'поставщик']
+			
+			Placemark.query.filter(Placemark.user_id == current_user.id).delete()
+			SubtagPlacemark.query.filter(~SubtagPlacemark.placemark.has()).delete(synchronize_session = 'fetch')
+			Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session='fetch')
+			Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session='fetch')
+			
+			for index, endpoint in endpoints.iterrows():
+				coordinates = endpoint['coordinates'].split(',')
+				if len(coordinates) != 2:
+					raise ValueError
+				p = Placemark(name = endpoint['name'], longitude = coordinates[0], latitude = coordinates[1], user_id = current_user.id)
+				db.session.add(p)
+				
+			for index, vendor in vendors.iterrows():
+				coordinates = vendor['coordinates'].split(',')
+				if len(coordinates) != 2:
+					raise ValueError
+				p = Placemark(name = vendor['name'], longitude = coordinates[0], latitude = coordinates[1],
+							  user_id = current_user.id, is_vendor = True, price_url = vendor['price'],
+							  phone = vendor.get('phone', ''),
+							  email = vendor.get('email', ''),
+							  address = vendor.get('address', ''),
+							  contact = vendor.get('contact', ''),
+							  website = vendor.get('website', ''),
+							  presentation = vendor.get('presentation', ''),
+							  full_name = vendor.get('organization name', ''))
+				db.session.add(p)
+				if SyncPlacemarkWithPrice(p) is False:
+					raise APIError
+				
+			db.session.commit()
+			flash('Метки успешно синхронизированы.')
+		except (NoValidUrlKeyFound, APIError, TypeError, ValueError, StatementError):
+			db.session.rollback()
+			flash('Некорректный URL или формат таблицы меток.')
+	else:
+		for error in form.url.errors:
+			flash(error)
+	active_tags = request.args.getlist('tag', type=int)
+	return redirect(url_for('main.ShowIndex', tag=active_tags))
+	
 
 @bp.route('/remove/')
 @login_required
@@ -101,8 +164,8 @@ def RemovePlacemark():
 		flash('Метка успешно удалена.')
 	else:
 		flash('Метка не найдена.')
-	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', tag=active_tag))
+	active_tags = request.args.getlist('tag', type=int)
+	return redirect(url_for('main.ShowIndex', tag=active_tags))
 	
 @bp.route('/add/', methods=['POST'])
 @login_required
@@ -129,32 +192,5 @@ def AddPlacemark():
 	else:
 		for error in form.name.errors + form.longitude.errors + form.latitude.errors + form.price_url.errors + form.description.errors + form.is_vendor.errors:
 			flash(error)
-	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', tag=active_tag))
-	
-@bp.route('/edit/', methods=['POST'])
-@login_required
-def EditPlacemark():
-	form = EditPlacemarkForm(request.form)
-	if form.validate_on_submit():
-		placemark = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == form.id.data, Placemark.is_vendor == True).first()
-		if placemark is not None:
-			try:
-				placemark.name = escape(form.name.data.strip())
-				placemark.description = form.description.data.strip()
-				RemovePlacemarkSubtags(placemark)
-				placemark.price_url = form.price_url.data
-				if SyncPlacemarkWithPrice(placemark) is not True:
-					raise APIError
-				db.session.commit()
-				flash('Метка успешно изменена.')
-			except:
-				db.session.rollback()
-				flash('Ошибка изменения метки.')
-		else:
-			flash('Метка не найдена.')
-	else:
-		for error in form.id.errors + form.price_url.errors + form.description.errors + form.name.errors:
-			flash(error)
-	active_tag = request.args.getlist('active_tag', type=int)
-	return redirect(url_for('main.ShowIndex', tag=active_tag))
+	active_tags = request.args.getlist('tag', type=int)
+	return redirect(url_for('main.ShowIndex', tag=active_tags))

@@ -69,8 +69,16 @@ class Placemark(db.Model):
 	description = db.Column(db.String(128), nullable=True)
 	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 	is_vendor = db.Column(db.Boolean, nullable=False, default=False, server_default='False')
-	price_url = db.Column(db.String(), nullable=True)
-	subtags = db.relationship('SubtagPlacemark', back_populates='placemark', cascade='save-update,merge,delete,delete-orphan')
+	price_url = db.Column(db.String, nullable=True)
+	phone = db.Column(db.String, nullable=True)
+	website = db.Column(db.String, nullable=True)
+	presentation = db.Column(db.String, nullable=True)
+	contact = db.Column(db.String, nullable=True)
+	address = db.Column(db.String, nullable=True)
+	full_name = db.Column(db.String, nullable=True)
+	email = db.Column(db.String, nullable=True)
+	
+	subtags = db.relationship('SubtagPlacemark', back_populates='placemark', cascade='all,delete,delete-orphan')
 	
 	def Serialize(self):
 		result = {
@@ -78,7 +86,14 @@ class Placemark(db.Model):
 			'coordinates':[self.longitude, self.latitude],
 			'name':self.name,
 			'description':self.description,
-			'price_url':self.price_url
+			'price_url':self.price_url,
+			'phone':self.phone,
+			'website':self.website,
+			'presentation':self.presentation,
+			'contact':self.contact,
+			'address':self.address,
+			'full_name':self.full_name,
+			'email':self.email
 		}
 		if self.is_vendor:
 			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}
