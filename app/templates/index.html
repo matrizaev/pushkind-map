@@ -75,9 +75,6 @@
 		</div>
 	{% else%}
 		<div class="row my-1">
-			<div class="col">
-				<small class="form-text text-muted">*Удалить конечную метку можно нажав на неё.</small>
-			</div>
 			<div class="col text-right">
 				<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapsedSyncForm" aria-expanded="false" aria-controls="collapsedSyncForm">
 					Синхронизация
@@ -232,9 +229,6 @@
 			<a href="#" data-toggle="modal" data-target="#vendorCardModal" class="vendorModalButton" >О компании</a>
 			<a href="#" data-toggle="modal" data-target="#showFullPriceModal" class="vendorModalButton">Прайс-лист</a>
 		</p>
-		<a href="{{ url_for('main.RemovePlacemark', tag = active_tags, id = 'replace_me') }}" class="badge badge-danger vendorRemove" onclick="return confirm('Удалить?')">
-			<img class="octicon" src="http://admin.pushkind.com/static/octicons/x.svg" alt="Удалить">
-		</a>
 	</div>
 </div>
 
@@ -380,9 +374,6 @@
 	{
 		var content = $('#vendorBaloonTemplate').clone();
 		content.find('p.vendorDescription').text(placemark.description);
-		var elem = content.find('a.vendorRemove');
-		var urlForRemove = elem.attr('href').replace('replace_me', placemark.id);
-		elem.attr('href', urlForRemove);
 		
 		elem = content.find('a.vendorModalButton');
 		elem.attr('data-placemarkType', 'vendor');
@@ -447,10 +438,6 @@
 					routesList.push(route);
 				}
 			});	
-		}
-		else {
-			if (confirm("Удалить?"))
-				window.location.href = "{{url_for('main.RemovePlacemark', id = 'replace_me')}}".replace("replace_me", target.template.id);
 		}
 	}
 	
