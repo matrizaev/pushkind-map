@@ -77,6 +77,7 @@ class Placemark(db.Model):
 	address = db.Column(db.String, nullable=True)
 	full_name = db.Column(db.String, nullable=True)
 	email = db.Column(db.String, nullable=True)
+	sequence = db.Column(db.Integer, nullable=True)
 	
 	subtags = db.relationship('SubtagPlacemark', back_populates='placemark', cascade='all,delete,delete-orphan')
 	
@@ -93,7 +94,8 @@ class Placemark(db.Model):
 			'contact':self.contact,
 			'address':self.address,
 			'full_name':self.full_name,
-			'email':self.email
+			'email':self.email,
+			'sequence':self.sequence if self.sequence is not None else self.id
 		}
 		if self.is_vendor:
 			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}

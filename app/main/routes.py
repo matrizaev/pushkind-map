@@ -120,7 +120,7 @@ def SyncPlacemarks():
 				coordinates = endpoint['coordinates'].split(',')
 				if len(coordinates) != 2:
 					raise ValueError
-				p = Placemark(name = endpoint['name'], longitude = coordinates[0], latitude = coordinates[1], user_id = current_user.id)
+				p = Placemark(name = endpoint['name'], longitude = coordinates[0], latitude = coordinates[1], user_id = current_user.id, sequence = index + 1)
 				db.session.add(p)
 				
 			for index, vendor in vendors.iterrows():
@@ -135,7 +135,8 @@ def SyncPlacemarks():
 							  contact = vendor.get('contact', ''),
 							  website = vendor.get('website', ''),
 							  presentation = vendor.get('presentation', ''),
-							  full_name = vendor.get('organization name', ''))
+							  full_name = vendor.get('organization name', ''),
+							  sequence = index + 1)
 				db.session.add(p)
 				if SyncPlacemarkWithPrice(p) is False:
 					raise APIError

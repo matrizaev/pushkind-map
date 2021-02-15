@@ -351,7 +351,8 @@
 
 		myMap = new ymaps.Map("map", {
 			center: [56.84, 60.60],
-			zoom: 4
+			zoom: 4,
+			controls: ['zoomControl', 'searchControl', 'typeSelector',  'fullscreenControl', 'routeButtonControl']
 		});
 		
 		vendorsTemplateList.forEach(AddVendorObject);
@@ -390,7 +391,7 @@
 				elem.append(subtag + ': <b>'+ placemark['prices'][subtag][0]+'</b> '+ placemark['prices'][subtag][1] + '<br>');
 		});
 		
-		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html(), iconContent:placemark.id});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html(), iconContent:placemark.sequence});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
