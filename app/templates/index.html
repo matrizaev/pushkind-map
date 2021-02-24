@@ -116,42 +116,42 @@
 				</button>
 			</div>
 			<div class="modal-body">
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
-						Название
+						Короткое название
 					</div>
 					<div class="col" id="vendorCardName">
 					</div>
 				</div>
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
-						Полное наименование
+						Полное название
 					</div>
 					<div class="col" id="vendorCardFullName">
 					</div>
 				</div>
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
 						Адрес
 					</div>
 					<div class="col" id="vendorCardAddress">
 					</div>
 				</div>
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
 						Контактное лицо
 					</div>
 					<div class="col" id="vendorCardContact">
 					</div>
 				</div>
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
 						Телефон
 					</div>
 					<div class="col" id="vendorCardPhone">
 					</div>
 				</div>
-				<div class="row border-bottom">
+				<div class="row">
 					<div class="col font-weight-bold">
 						Электронная почта
 					</div>
@@ -202,8 +202,8 @@
 						<tr>
 							<th scope="col">#</th>
 							<th scope="col">Материал</th>
+							<th scope="col">ЕИ</th>
 							<th scope="col">Цена</th>
-							<th scope="col">Единицы</th>
 						</tr>
 					</thead>
 				<tbody id="vendorFullPrice">
@@ -212,7 +212,6 @@
 				</table>
 			</div>
 			<div class="modal-footer">
-				<a class="btn btn-info" id="priceSyncButton" href="">Синхронизация</a>
 				<button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
 			</div>
 		</div>
@@ -223,7 +222,7 @@
 <div class="d-none" id="templates">
 	<div id="vendorBaloonTemplate">
 		<p class="vendorDescription"></p>
-		<span>Цены (с доставкой и НДС):</span>
+		<span>Цены:</span>
 		<p class="vendorShortPrice"></p>
 		<p>
 			<a href="#" data-toggle="modal" data-target="#vendorCardModal" class="vendorModalButton" >О компании</a>
@@ -280,14 +279,11 @@
 			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
 			{
 				var placemark = vendorsList[index];				
-				var syncBtn = $("#priceSyncButton");
-				var urlForSync = "{{ url_for('main.SyncPrice', id='replace_me') }}".replace('replace_me', placemark.template.id);
-				syncBtn.attr("href", urlForSync);
 				var vendorFullPrice = $("#vendorFullPrice");
 				vendorFullPrice.empty();
 				var index = 0;
 				for (subtag in placemark.template['prices']){
-					var row = "<tr><td>"+index+"</td><td>"+subtag+"</td><td>"+placemark.template['prices'][subtag][0]+"</td><td>"+placemark.template['prices'][subtag][1]+"</td></tr>";
+					var row = "<tr><td>"+index+"</td><td>"+subtag+"</td><td>"+placemark.template['prices'][subtag][1]+"</span></td><td><span title='"+placemark.template['prices'][subtag][2]+"'>"+placemark.template['prices'][subtag][0]+"</td></tr>";
 					vendorFullPrice.append(row);
 					index += 1;
 				}
@@ -306,8 +302,10 @@
 				$("#vendorCardPhone").text(placemark.template['phone']);
 				$("#vendorCardEmail").attr('href', placemark.template['email']);
 				$("#vendorCardEmail").text(placemark.template['email']);
-				$("#vendorCardWebsite").attr('href', placemark.template['website']);
-				$("#vendorCardPresentation").attr('href', placemark.template['presentation']);
+				if (placemark.template['website'] != '')
+					$("#vendorCardWebsite").attr('href', placemark.template['website']);
+				if (placemark.template['presentation'] != '')	
+					$("#vendorCardPresentation").attr('href', placemark.template['presentation']);
 				$("#vendorCardPrice").attr('href', placemark.template['price_url']);
 			}
 		});
@@ -333,7 +331,7 @@
 				vendor.options.set('preset', 'islands#grayStretchyIcon');
 				vendor.active = false;
 			}
-			vendor.properties.set('iconContent', vendor.template.id);
+			vendor.properties.set('iconContent', vendor.template.sequence);
 		});
 	}
 	
@@ -388,7 +386,7 @@
 			{% endfor %}
 		].forEach(function(subtag){
 			if (subtag in placemark['prices'])
-				elem.append(subtag + ': <b>'+ placemark['prices'][subtag][0]+'</b> '+ placemark['prices'][subtag][1] + '<br>');
+				elem.append(subtag + ': <span class="font-weight-bold" title="'+placemark['prices'][subtag][2]+'">'+ placemark['prices'][subtag][0]+'</span> '+ placemark['prices'][subtag][1] + '<br>');
 		});
 		
 		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html(), iconContent:placemark.sequence});

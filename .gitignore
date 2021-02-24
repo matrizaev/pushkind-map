@@ -17,4 +17,4 @@ migrations/
 
 
 #App
-google-drive-account.json
+*.json

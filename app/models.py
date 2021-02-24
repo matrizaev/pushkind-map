@@ -98,9 +98,9 @@ class Placemark(db.Model):
 			'sequence':self.sequence if self.sequence is not None else self.id
 		}
 		if self.is_vendor:
-			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else ''] for st in self.subtags}
-			tags = self.GetTags()
-			result['tags'] = {t.name:{st.name:[tags[t][st].price, tags[t][st].units if tags[t][st].units else ''] for st in tags[t]} for t in tags}
+			result['prices'] = {st.subtag.name:[st.price, st.units if st.units else '', st.comment if st.comment else ''] for st in self.subtags}
+			#tags = self.GetTags()
+			#result['tags'] = {t.name:{st.name:[tags[t][st].price, tags[t][st].units if tags[t][st].units else ''] for st in tags[t]} for t in tags}
 		return result
 	
 	def GetTags(self):
@@ -122,6 +122,7 @@ class SubtagPlacemark(db.Model):
 	units = db.Column(db.String(30), nullable=True)
 	placemark = db.relationship('Placemark', back_populates='subtags')
 	subtag = db.relationship('Subtag', back_populates='placemarks')
+	comment = db.Column(db.String, nullable=True)
 
 	def __hash__(self):
 		return hash((self.placemark_id, self.subtag_id))

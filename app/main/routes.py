@@ -7,11 +7,13 @@ from app.main.forms import AddPlacemarkForm, SyncPlacemarksForm
 from flask import current_app
 
 import gspread
-from gspread.exceptions import NoValidUrlKeyFound, APIError
+from gspread.exceptions import NoValidUrlKeyFound, APIError, WorksheetNotFound
 
 import pandas as pd
 
 from sqlalchemy.exc import StatementError
+
+from time import sleep
 
 @bp.route('/')
 @bp.route('/index/')
@@ -39,15 +41,7 @@ def RemovePlacemarkSubtags(placemark):
 	Subtag.query.filter(~Subtag.placemarks.any()).delete(synchronize_session='fetch')
 	Tag.query.filter(~Tag.subtags.any()).delete(synchronize_session='fetch')
 
-def GoogleTable2DataFrame(url):
-	gc = gspread.service_account(filename=current_app.config['GOOGLE_DRIVE_ACCOUNT'])
-	spreadsheet = gc.open_by_url(url)
-	worksheet = spreadsheet.get_worksheet(0)
-	data = worksheet.get_all_records()
-	df = pd.DataFrame(data)
-	return df
-
-def SyncPlacemarkWithPrice(placemark):
+def SyncPlacemarkWithPrice(placemark, df):
 	def SyncSubtags(placemark, tag, template):
 		st_name = '{} / {}'.format(tag.name, template['subtag'].strip().lower().replace('/', '_'))
 		st = Subtag.query.filter(Subtag.name == st_name, Subtag.tag == tag).first()
@@ -55,46 +49,25 @@ def SyncPlacemarkWithPrice(placemark):
 			st = Subtag(name = st_name)
 			db.session.add(st)
 			tag.subtags.append(st)
-		subtag_placemark = SubtagPlacemark(price = template['price'], units = template['units'])
+		subtag_placemark = SubtagPlacemark(price = template['price'], units = template['units'], comment = template['comment'])
 		subtag_placemark.placemark = placemark
 		subtag_placemark.subtag = st
 		db.session.add(subtag_placemark)
-	try:
-		df = GoogleTable2DataFrame(placemark.price_url)
-		if not all([key in df.columns for key in ['tag', 'subtag', 'price', 'units']]) or len(df.index) == 0:
-			raise TypeError
-		df = df.groupby(by = ['tag', 'subtag'], as_index = False, sort = False).agg({'price':'first', 'units':'first'})
-		for _tag_name in df.tag.unique():
-			tag_name = _tag_name.strip().lower().replace('/', '_')
-			tag = Tag.query.filter(Tag.name == tag_name).first()
-			if not tag:
-				tag = Tag(name = tag_name)
-				db.session.add(tag)
-			tag_df = df[df['tag'] == _tag_name]
-			tag_df.apply(lambda row: SyncSubtags(placemark, tag, row), axis=1)
-		return True
-	except (NoValidUrlKeyFound, APIError, TypeError):
-		return False
 
-	
-@bp.route('/sync/price/')
-@login_required
-def SyncPrice():
-	id = request.args.get('id', type=int)
-	placemark = Placemark.query.filter(Placemark.user_id == current_user.id, Placemark.id == id, Placemark.is_vendor == True, Placemark.price_url != None).first()
-	if placemark is not None:
-		RemovePlacemarkSubtags(placemark)
-		if SyncPlacemarkWithPrice(placemark) is True:
-			flash('Метка успешно синхронизирована с прайс-листом.')
-			db.session.commit()
-		else:
-			db.session.rollback()
-			flash('Не удалось синхронизировать метку с прайс-листом.')
-	else:
-		flash('Метка не может быть синхронизирована.')
-	active_tags = request.args.getlist('tag', type=int)	
-	return redirect(url_for('main.ShowIndex', tag=active_tags))
-	
+	if not all([key in df.columns for key in ['tag', 'subtag', 'price', 'units', 'comment']]) or len(df.index) == 0:
+		return False
+	df = df.groupby(by = ['tag', 'subtag'], as_index = False, sort = False).agg({'price':'first', 'units':'first', 'comment':'first'})
+	for _tag_name in df.tag.unique():
+		tag_name = _tag_name.strip().lower().replace('/', '_')
+		if tag_name == '':
+			continue
+		tag = Tag.query.filter(Tag.name == tag_name).first()
+		if not tag:
+			tag = Tag(name = tag_name)
+			db.session.add(tag)
+		tag_df = df[df['tag'] == _tag_name]
+		tag_df.apply(lambda row: SyncSubtags(placemark, tag, row), axis=1)
+	return True
 
 @bp.route('/sync/placemarks/', methods=['POST'])
 @login_required
@@ -102,8 +75,12 @@ def SyncPlacemarks():
 	form = SyncPlacemarksForm()
 	if form.validate_on_submit():
 		try:
-			df = GoogleTable2DataFrame(form.url.data)
-			if not all([key in df.columns for key in ['type', 'name', 'organization name', 'address', 'coordinates', 'contact', 'phone', 'email', 'presentation', 'website', 'price']]) or len(df.index) == 0:
+			gc = gspread.service_account(filename=current_app.config['GOOGLE_DRIVE_ACCOUNT'])
+			spreadsheet = gc.open_by_url(form.url.data)
+			worksheet = spreadsheet.get_worksheet(0)
+			df = pd.DataFrame(worksheet.get_all_records())
+
+			if not all([key in df.columns for key in ['id','type', 'name', 'organization name', 'address', 'coordinates', 'contact', 'phone', 'email', 'presentation', 'website']]) or len(df.index) == 0:
 				raise TypeError
 				
 			df = df.astype(str)
@@ -124,11 +101,16 @@ def SyncPlacemarks():
 				db.session.add(p)
 				
 			for index, vendor in vendors.iterrows():
+				sleep(5)
+				try:
+					worksheet = spreadsheet.worksheet(vendor['id'])
+				except WorksheetNotFound:
+					continue
 				coordinates = vendor['coordinates'].split(',')
 				if len(coordinates) != 2:
 					raise ValueError
 				p = Placemark(name = vendor['name'], longitude = coordinates[0], latitude = coordinates[1],
-							  user_id = current_user.id, is_vendor = True, price_url = vendor['price'],
+							  user_id = current_user.id, is_vendor = True, price_url = form.url.data,
 							  phone = vendor.get('phone', ''),
 							  email = vendor.get('email', ''),
 							  address = vendor.get('address', ''),
@@ -136,13 +118,22 @@ def SyncPlacemarks():
 							  website = vendor.get('website', ''),
 							  presentation = vendor.get('presentation', ''),
 							  full_name = vendor.get('organization name', ''),
-							  sequence = index + 1)
+							  sequence = vendor['id'])
 				db.session.add(p)
-				if SyncPlacemarkWithPrice(p) is False:
-					raise APIError
+
+				df = pd.DataFrame(worksheet.get_all_records())
+				df = df.astype(str)
+				df['price'] = df['price'].str.replace(r'\s+', '')
+				df['price'] = pd.to_numeric(df['price'])
+				
+				if SyncPlacemarkWithPrice(p, df) is False:
+					raise ValueError
 				
 			db.session.commit()
 			flash('Метки успешно синхронизированы.')
+		except (NoValidUrlKeyFound, APIError):
+			db.session.rollback()
+			flash('Ошибка Google API.')
 		except (NoValidUrlKeyFound, APIError, TypeError, ValueError, StatementError):
 			db.session.rollback()
 			flash('Некорректный URL или формат таблицы меток.')
