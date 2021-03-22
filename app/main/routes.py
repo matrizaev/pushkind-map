@@ -84,9 +84,10 @@ def SyncPlacemarks():
 				raise TypeError
 				
 			df = df.astype(str)
-				
-			endpoints = df[df['type'] == 'объект']
-			vendors = df[df['type'] == 'поставщик']
+			
+			endpoints = df[(df['type'].str.lower() == 'объект') & (df['name'].str.len() > 0) & (df['coordinates'].str.len() > 0)]
+			vendors = df[(df['type'].str.lower() == 'поставщик') & (df['name'].str.len() > 0) & (df['coordinates'].str.len() > 0)]
+			
 			
 			Placemark.query.filter(Placemark.user_id == current_user.id).delete()
 			SubtagPlacemark.query.filter(~SubtagPlacemark.placemark.has()).delete(synchronize_session = 'fetch')

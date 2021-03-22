@@ -274,39 +274,55 @@
 		$('#resetMap').on('click', ResetMap);
 		$('#subTagSelect').on('change', ResetMap);
 		
-		$('#showFullPriceModal').on('shown.bs.modal', function (e) {
-			var index = e.relatedTarget.getAttribute('data-placemarkIndex');
-			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
+		$("#showFullPriceModal").on("shown.bs.modal", function (e) {
+			var index = e.relatedTarget.getAttribute("data-placemarkIndex");
+			if (e.relatedTarget.getAttribute("data-placemarkType") == "vendor")
 			{
-				var placemark = vendorsList[index];				
-				var vendorFullPrice = $("#vendorFullPrice");
+				let placemark = vendorsList[index];				
+				let vendorFullPrice = $("#vendorFullPrice");
 				vendorFullPrice.empty();
-				var index = 0;
-				for (subtag in placemark.template['prices']){
-					var row = "<tr><td>"+index+"</td><td>"+subtag+"</td><td>"+placemark.template['prices'][subtag][1]+"</span></td><td><span title='"+placemark.template['prices'][subtag][2]+"'>"+placemark.template['prices'][subtag][0]+"</td></tr>";
+				index = 1;
+				for (let subtag in placemark.template["prices"]){
+					let row = $("<tr></tr>");
+					let cell = $("<td></td>");
+					cell.text(index);
+					row.append(cell);
+					cell = $("<td></td>");
+					cell.text(subtag);
+					row.append(cell);
+					cell = $("<td></td>");
+					cell.text(placemark.template["prices"][subtag][1]);
+					row.append(cell);
+					cell = $("<td></td>");
+					let span = $("<span></tspan>");
+					row.append(cell);
+					cell.append(span);
+					span.text(placemark.template["prices"][subtag][0]);
+					span.attr("title", placemark.template["prices"][subtag][2]);
+					
 					vendorFullPrice.append(row);
 					index += 1;
 				}
 			}
 		});	
 		
-		$('#vendorCardModal').on('shown.bs.modal', function (e) {
-			var index = e.relatedTarget.getAttribute('data-placemarkIndex');
-			if (e.relatedTarget.getAttribute('data-placemarkType') == 'vendor')
+		$("#vendorCardModal").on("shown.bs.modal", function (e) {
+			var index = e.relatedTarget.getAttribute("data-placemarkIndex");
+			if (e.relatedTarget.getAttribute("data-placemarkType") == "vendor")
 			{
 				var placemark = vendorsList[index];
-				$("#vendorCardName").text(placemark.template['name']);
-				$("#vendorCardFullName").text(placemark.template['full_name']);
-				$("#vendorCardAddress").text(placemark.template['address']);
-				$("#vendorCardContact").text(placemark.template['contact']);
-				$("#vendorCardPhone").text(placemark.template['phone']);
-				$("#vendorCardEmail").attr('href', placemark.template['email']);
-				$("#vendorCardEmail").text(placemark.template['email']);
-				if (placemark.template['website'] != '')
-					$("#vendorCardWebsite").attr('href', placemark.template['website']);
-				if (placemark.template['presentation'] != '')	
-					$("#vendorCardPresentation").attr('href', placemark.template['presentation']);
-				$("#vendorCardPrice").attr('href', placemark.template['price_url']);
+				$("#vendorCardName").text(placemark.template["name"]);
+				$("#vendorCardFullName").text(placemark.template["full_name"]);
+				$("#vendorCardAddress").text(placemark.template["address"]);
+				$("#vendorCardContact").text(placemark.template["contact"]);
+				$("#vendorCardPhone").text(placemark.template["phone"]);
+				$("#vendorCardEmail").attr("href", placemark.template["email"]);
+				$("#vendorCardEmail").text(placemark.template["email"]);
+				if (placemark.template["website"] != "")
+					$("#vendorCardWebsite").attr("href", placemark.template["website"]);
+				if (placemark.template["presentation"] != "")	
+					$("#vendorCardPresentation").attr("href", placemark.template["presentation"]);
+				$("#vendorCardPrice").attr("href", placemark.template["price_url"]);
 			}
 		});
 	});
@@ -319,19 +335,19 @@
 		endpointsList.forEach(function(endpoint){
 			endpoint.options.set("visible", true);
 		});
-		var currentSubtag = $('#subTagSelect').val();
+		var currentSubtag = $("#subTagSelect").val();
 		vendorsList.forEach(function(vendor){
-			if (currentSubtag == 'all' || currentSubtag in vendor.template['prices'])
+			if (currentSubtag == "all" || currentSubtag in vendor.template["prices"])
 			{
-				vendor.options.set('preset', 'islands#redStretchyIcon');
+				vendor.options.set("preset", "islands#redStretchyIcon");
 				vendor.active = true;
 			}
 			else
 			{
-				vendor.options.set('preset', 'islands#grayStretchyIcon');
+				vendor.options.set("preset", "islands#grayStretchyIcon");
 				vendor.active = false;
 			}
-			vendor.properties.set('iconContent', vendor.template.sequence);
+			vendor.properties.set("iconContent", vendor.template.sequence);
 		});
 	}
 	
@@ -350,7 +366,7 @@
 		myMap = new ymaps.Map("map", {
 			center: [56.84, 60.60],
 			zoom: 4,
-			controls: ['zoomControl', 'searchControl', 'typeSelector',  'fullscreenControl', 'routeButtonControl']
+			controls: ["zoomControl", "searchControl", "typeSelector",  "fullscreenControl", "routeButtonControl"]
 		});
 		
 		vendorsTemplateList.forEach(AddVendorObject);
@@ -362,55 +378,69 @@
 	//
 	function AddEndpointObject(placemark, index)
 	{
-		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name}, {preset: 'islands#blueStretchyIcon'});
+		var endpoint = new ymaps.Placemark(placemark.coordinates, {iconContent:placemark.name}, {preset: "islands#blueStretchyIcon"});
 		myMap.geoObjects.add(endpoint);
-		endpoint.events.add('click', OnPlacemarkClick);
+		endpoint.events.add("click", OnPlacemarkClick);
 		endpoint.template = placemark;
 		endpointsList.push(endpoint);
 	}
 	
 	function AddVendorObject(placemark, index)
 	{
-		var content = $('#vendorBaloonTemplate').clone();
-		content.find('p.vendorDescription').text(placemark.description);
+		var content = $("#vendorBaloonTemplate").clone();
+		content.find("p.vendorDescription").text(placemark.description);
 		
-		elem = content.find('a.vendorModalButton');
-		elem.attr('data-placemarkType', 'vendor');
-		elem.attr('data-placemarkIndex', index);
+		elem = content.find("a.vendorModalButton");
+		elem.attr("data-placemarkType", "vendor");
+		elem.attr("data-placemarkIndex", index);
 		
-		var elem = content.find('p.vendorShortPrice');
+		var elem = content.find("p.vendorShortPrice");
 		
 		[
 			{% for subtag in active_subtags %}
 				"{{ subtag.name }}",
 			{% endfor %}
 		].forEach(function(subtag){
-			if (subtag in placemark['prices'])
-				elem.append(subtag + ': <span class="font-weight-bold" title="'+placemark['prices'][subtag][2]+'">'+ placemark['prices'][subtag][0]+'</span> '+ placemark['prices'][subtag][1] + '<br>');
+			if (subtag in placemark["prices"]){
+				let span = $("<span></span>");
+				span.text(subtag);
+				elem.append(span);
+				elem.append(":&nbsp;");
+				span = $("<span></span>");
+				span.text(placemark["prices"][subtag][0]);
+				span.attr("title", placemark["prices"][subtag][2]);
+				span.addClass("font-weight-bold");
+				elem.append(span);
+				elem.append("&nbsp;");
+				span = $("<span></span>");
+				span.text(placemark['prices'][subtag][1]);
+				elem.append(span);
+				elem.append($("<br>"));
+			}
 		});
 		
-		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: placemark.name, balloonContentBody:content.html(), iconContent:placemark.sequence});
+		var vendor = new ymaps.Placemark(placemark.coordinates, {balloonContentHeader: decodeEntities(placemark.name), balloonContentBody:content.html(), iconContent:placemark.sequence});
 		myMap.geoObjects.add(vendor);
 		vendor.template = placemark;
 		vendorsList.push(vendor);
 		
-		var currentSubtag = $('#subTagSelect').val();
-		if (currentSubtag == 'all' || currentSubtag in placemark['prices'])
+		var currentSubtag = $("#subTagSelect").val();
+		if (currentSubtag == "all" || currentSubtag in placemark["prices"])
 		{
-			vendor.options.set('preset', 'islands#redStretchyIcon');
+			vendor.options.set("preset", "islands#redStretchyIcon");
 			vendor.active = true;
 		}
 		else
 		{
-			vendor.options.set('preset', 'islands#grayStretchyIcon');
+			vendor.options.set("preset", "islands#grayStretchyIcon");
 			vendor.active = false;
 		}
 	}
 	
 	function OnPlacemarkClick(e)
 	{
-		var target = e.get('target');
-		if (vendorsList['length'] > 0)
+		var target = e.get("target");
+		if (vendorsList["length"] > 0)
 		{
 			endpointsList.forEach(function(endpoint){
 				if (endpoint != target) 
@@ -433,7 +463,7 @@
 					}, {boundsAutoApply: false, wayPointVisible:false});
 					route.vendor = vendor;
 					myMap.geoObjects.add(route);
-					route.events.add('update', FilterRoutesByDistance);
+					route.events.add("update", FilterRoutesByDistance);
 					routesList.push(route);
 				}
 			});	
@@ -442,16 +472,16 @@
 	
 	function FilterRoutesByDistance()
 	{
-		var filterDistance = Number($('#distanceRange').val());
-		$('#distanceLabel').text(filterDistance);
+		var filterDistance = Number($("#distanceRange").val());
+		$("#distanceLabel").text(filterDistance);
 		filterDistance *= 1000;
-		var currentSubtag = $('#subTagSelect').val();
+		var currentSubtag = $("#subTagSelect").val();
 		var minIndex = 0;
 		var minimalPrice = null;
 		if (currentSubtag == "all")
 		{
 			vendorsList.forEach(function(vendor){
-				vendor.options.set('preset', 'islands#redStretchyIcon');
+				vendor.options.set("preset", "islands#redStretchyIcon");
 				vendor.active = true;
 			});
 			routesList.forEach(function(route, index){
@@ -463,8 +493,8 @@
 					
 					if (filterDistance > currentDistance)
 					{
-						var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км)';
-						route.vendor.properties.set('iconContent', header);
+						var header = route.vendor.template["name"]+" ("+Math.round(currentDistance/1000.0)+" км)";
+						route.vendor.properties.set("iconContent", decodeEntities(header));
 						route.options.set("visible", true);
 						if (currentDistance < routesList[minIndex].activeDistance)
 						{
@@ -474,7 +504,7 @@
 					else
 					{
 						route.options.set("visible", false);
-						route.vendor.properties.set('iconContent', '');
+						route.vendor.properties.set("iconContent", "");
 					}
 				}
 			});		
@@ -482,14 +512,14 @@
 		else
 		{
 			vendorsList.forEach(function(vendor){
-				if (currentSubtag in vendor.template['prices'])
+				if (currentSubtag in vendor.template["prices"])
 				{
-					vendor.options.set('preset', 'islands#redStretchyIcon');
+					vendor.options.set("preset", "islands#redStretchyIcon");
 					vendor.active = true;
 				}
 				else
 				{
-					vendor.options.set('preset', 'islands#grayStretchyIcon');
+					vendor.options.set("preset", "islands#grayStretchyIcon");
 					vendor.active = false;
 				}
 			});
@@ -503,14 +533,14 @@
 					if (filterDistance > currentDistance)
 					{
 						route.options.set("visible", true);
-						var header = route.vendor.template['name']+' ('+Math.round(currentDistance/1000.0)+' км / <b>'+route.vendor.template['prices'][currentSubtag][0]+'</b> '+route.vendor.template['prices'][currentSubtag][1]+')';
-						route.vendor.properties.set('iconContent', header);
-						if (minimalPrice === null || route.vendor.template['prices'][currentSubtag][0] < minimalPrice)
+						var header = route.vendor.template["name"]+" ("+Math.round(currentDistance/1000.0)+" км / <b>"+route.vendor.template["prices"][currentSubtag][0]+"</b> "+route.vendor.template["prices"][currentSubtag][1]+")";
+						route.vendor.properties.set("iconContent", decodeEntities(header));
+						if (minimalPrice === null || route.vendor.template["prices"][currentSubtag][0] < minimalPrice)
 						{
-							minimalPrice = route.vendor.template['prices'][currentSubtag][0];
+							minimalPrice = route.vendor.template["prices"][currentSubtag][0];
 							minIndex = index;
 						}
-						else if (route.vendor.template['prices'][currentSubtag][0] == minimalPrice)
+						else if (route.vendor.template["prices"][currentSubtag][0] == minimalPrice)
 						{
 							if (currentDistance < routesList[minIndex].activeDistance)
 							{
@@ -521,26 +551,26 @@
 					else
 					{
 						route.options.set("visible", false);
-						route.vendor.properties.set('iconContent', '');
+						route.vendor.properties.set("iconContent", "");
 					}
 				}
 			});		
 		}
 		if (routesList.length > 0)
-			routesList[minIndex].vendor.options.set('preset', 'islands#greenStretchyIcon');
+			routesList[minIndex].vendor.options.set("preset", "islands#greenStretchyIcon");
 	}
 	
 	var decodeEntities = (function () {
 		var doc = document.implementation.createHTMLDocument("");
-		var element = doc.createElement('div');
+		var element = doc.createElement("div");
 		function getText(str) {
 			element.innerHTML = str;
 			str = element.textContent;
-			element.textContent = '';
+			element.textContent = "";
 			return str;
 		}
 		function decodeHTMLEntities(str) {
-			if (str && typeof str === 'string') {
+			if (str && typeof str === "string") {
 				var x = getText(str);
 				while (str !== x) {
 					str = x;
