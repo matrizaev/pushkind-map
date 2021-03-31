@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import Form, SubmitField, StringField, BooleanField, FloatField, TextAreaField, IntegerField, FieldList, FormField
 from wtforms.validators import DataRequired, ValidationError, Length, Optional, URL
 from wtforms.fields.html5 import URLField
-
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 
 class AddPlacemarkForm(FlaskForm):
 	name = StringField('Название', validators = [DataRequired(message='Название  - обязательное поле.'), Length(max = 128, message='Название не должно быть длиннее 128 символов.')], id='addName')
@@ -20,3 +20,7 @@ class AddPlacemarkForm(FlaskForm):
 class SyncPlacemarksForm(FlaskForm):
 	url = URLField('URL меток', id='syncPlacemarksURL', validators=[DataRequired(message='URL меток  - обязательное поле.'),URL(message='Некорректный URL.')])
 	submit = SubmitField('Синхронизация', id='syncSubmit')
+	
+class ImportPlacemarksForm(FlaskForm):
+	placemarks = FileField (label = 'Метки', id='importPlacemarks', validators=[FileRequired(), FileAllowed(['xlsx'], 'Разрешены только XLSX.')])
+	submit = SubmitField('Загрузить')

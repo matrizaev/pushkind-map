@@ -83,18 +83,33 @@
 		</div>
 	{% endif %}
 	<div class="collapse" id="collapsedSyncForm">
-		<form class="my-2" method="POST" action="{{ url_for('main.SyncPlacemarks', tag = active_tags) }}">
-			<h6>Синхронизровать метки с Google-таблицей</h6>
-			{{ sync_form.csrf_token(id='syncCSRF') }}
-			<div class="row">
-				<div class="col">
-					{{ sync_form.url(class_ = 'form-control mb-1', placeholder='https://drive.google.com/drive') }}
-				</div>
-				<div class="col-lg-2">
-					{{ sync_form.submit(class_ = 'btn btn-primary') }}
-				</div>
+		<h6>Синхронизровать метки с Google-таблицей</h6>
+		<div class="row">
+			<div class="col">
+				<form method="POST" action="{{ url_for('main.SyncPlacemarksGoogle', tag = active_tags) }}">
+					{{ sync_form.csrf_token(id='syncCSRF') }}
+					<div class="row">
+						<div class="col">
+							{{ sync_form.url(class_ = 'form-control mb-1', placeholder='https://drive.google.com/drive') }}
+						</div>
+						<div class="col-lg-2">
+							{{ sync_form.submit(class_ = 'btn btn-primary') }}
+						</div>
+					</div>
+				</form>
 			</div>
-		</form>
+			<div class="col-auto">
+				<form method="POST" enctype="multipart/form-data" id="importPlacemarksForm" action="{{ url_for('main.SyncPlacemarksExcel') }}">
+					{{ import_form.csrf_token }}
+					<label for="importPlacemarksFile">
+						<span class="btn btn-primary">
+							<img class="octicon" src="http://cabinet.pushkind.com/static/octicons/cloud-upload.svg" alt="upload"> Excel
+						</span>
+					</label>
+					<input id="importPlacemarksFile" type="file" name="placemarks" class="d-none" accept=".xls,.xlsx">
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -265,6 +280,9 @@
 	//
 	$(function() {
 	
+		$('#importPlacemarksFile').on('change',function(){
+			$('#importPlacemarksForm').submit();
+		});
 	
 		//Subtags search
 		$('input[type=search]').on('search', function () {
